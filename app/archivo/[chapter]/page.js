@@ -13,8 +13,8 @@ export async function generateMetadata({ params }) {
   if (!chapter) return {};
 
   return {
-    title: `${chapter.label} — SEÑAL 88`,
-    description: chapter.copy,
+    title: `${chapter.label || "Capítulo"} — Caraval: La Isla de los Sueños`,
+    description: chapter.copy || "Experiencia transmedia de Caraval: La Isla de los Sueños.",
   };
 }
 

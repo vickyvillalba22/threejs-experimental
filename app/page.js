@@ -1,5 +1,5 @@
-import Experience from "@/components/Experience";
+import HomeExperience from "@/components/HomeExperience";
 
 export default function Home() {
-  return <Experience initialChapterId={null} />;
+  return <HomeExperience />;
 }
