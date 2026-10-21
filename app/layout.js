@@ -1,9 +1,15 @@
 import "./globals.css";
-import { Imbue } from "next/font/google";
+import { Darker_Grotesque, Imbue } from "next/font/google";
 
 const imbue = Imbue({
   subsets: ["latin"],
   variable: "--font-primary",
+  display: "swap",
+});
+
+const darkerGrotesque = Darker_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-secondary",
   display: "swap",
 });
 
@@ -14,7 +20,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es" className={imbue.variable}>
+    <html lang="es" className={`${imbue.variable} ${darkerGrotesque.variable}`}>
       <body>{children}</body>
     </html>
   );

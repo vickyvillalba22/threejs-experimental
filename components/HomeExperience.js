@@ -3,11 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthPanel from "@/components/AuthPanel";
+import ParticleTrail from "@/components/ParticleTrail";
 import { useProgress } from "@/hooks/useProgress";
 
 export default function HomeExperience() {
   const router = useRouter();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isEntranceRevealed, setIsEntranceRevealed] = useState(false);
   const {
     authError,
     authLoading,
@@ -34,8 +36,9 @@ export default function HomeExperience() {
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-app-background">
+      <ParticleTrail onReveal={() => setIsEntranceRevealed(true)} />
       <div className="absolute right-6 top-6 z-[40] flex items-center gap-3 max-[600px]:left-6 max-[600px]:right-6 max-[600px]:justify-between">
-        <span className="text-[8px] tracking-[0.12em] text-app-faint" aria-live="polite">
+        <span className="text-[12px] tracking-[0.12em]" aria-live="polite">
           {authUser && !authUser.isAnonymous
             ? `OPERADOR: ${authUser.displayName || authUser.email}`
             : syncState === "cloud"
@@ -43,7 +46,7 @@ export default function HomeExperience() {
               : "MODO LOCAL"}
         </span>
         <button
-          className="border border-app-border bg-app-surface px-3 py-2 text-[9px] tracking-[0.1em] text-app-text transition-colors hover:border-app-accent hover:text-app-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="border border-app-border bg-app-surface px-3 py-2 text-[12px] tracking-[0.1em] text-app-text transition-colors hover:border-app-accent hover:text-app-accent disabled:cursor-not-allowed disabled:opacity-50 rounded-2xl"
           onClick={() => setIsAuthOpen(true)}
           disabled={!firebaseConfigured}
           title={firebaseConfigured ? "Abrir opciones de acceso" : "Configurá Firebase para activar el acceso"}
@@ -52,23 +55,36 @@ export default function HomeExperience() {
         </button>
       </div>
 
-      <section className="fixed inset-0 z-[30] grid place-content-center justify-items-center bg-app-background p-6 text-center">
-        <p className="mb-[17px] text-[10px] leading-[1.5] tracking-[0.14em] text-app-accent">
+      <section className="fixed inset-0 z-[30] flex flex-col items-center justify-center bg-app-background p-6 text-center gap-10">
+        <p className="mb-[10px] text-[20px] tracking-[0.14em]">
           EXPERIENCIA TRANSMEDIA
         </p>
-        <h1 className="m-0 font-app-display text-[clamp(56px,13vw,170px)] leading-[0.85] tracking-[-0.08em]">
+        <div className="h-[40vh]">
+          <p className="font-app-display text-[150px] font-light">
           CARAVAL
-        </h1>
-        <p className="mx-auto mb-[26px] mt-[36px] w-[min(550px,90vw)] font-app-body text-[15px] leading-[1.7] text-app-subtle">
-          Caraval: La Isla de los Sueños
+          </p>
+          <p className="mx-auto mb-[26px] w-[min(550px,90vw)] font-app-display text-[40px]  text-app-subtle">
+            La Isla de los Sueños
+          </p>
+        </div>
+        
+        <p className="mb-5 tracking-[0.14em] text-[20px]">
+          MANTENÉ PRESIONADO EL MOUSE Y DIBUJÁ UN CÍRCULO
         </p>
-        <button
-          className="flex w-[min(360px,90vw)] justify-between border border-app-accent bg-app-accent px-[18px] py-4 text-[11px] tracking-[0.1em] text-app-background transition-colors duration-200 hover:bg-transparent hover:text-app-text"
-          onClick={enterExperience}
-        >
-          <span>ENTRAR</span>
-          <span aria-hidden="true">↗</span>
-        </button>
+        {isEntranceRevealed && (
+          <div className="relative">
+            <div className="entrance-flash" aria-hidden="true" />
+            <button
+              className="enter-button relative z-[1] flex w-fit justify-center overflow-hidden rounded-2xl border border-transparent bg-black px-5 py-4 text-[20px] tracking-[0.14em] text-app-text transition-colors duration-200 hover:bg-[#fafafa] hover:text-black"
+              onClick={enterExperience}
+            >
+              <svg className="enter-button__border" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <rect x="1" y="1" width="98" height="98" rx="12" ry="25" pathLength="100" />
+              </svg>
+              <span className="relative z-[1]">ENTRAR</span>
+            </button>
+          </div>
+        )}
         <p className="mt-4.5 text-[9px] text-app-faint">&nbsp;</p>
       </section>
 
