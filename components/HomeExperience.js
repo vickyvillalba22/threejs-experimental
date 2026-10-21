@@ -57,7 +57,7 @@ export default function HomeExperience() {
           EXPERIENCIA TRANSMEDIA
         </p>
         <h1 className="m-0 font-app-display text-[clamp(56px,13vw,170px)] leading-[0.85] tracking-[-0.08em]">
-          CARAVAL <span className="text-app-accent">∞</span>
+          CARAVAL
         </h1>
         <p className="mx-auto mb-[26px] mt-[36px] w-[min(550px,90vw)] font-app-body text-[15px] leading-[1.7] text-app-subtle">
           Caraval: La Isla de los Sueños
@@ -69,7 +69,7 @@ export default function HomeExperience() {
           <span>ENTRAR</span>
           <span aria-hidden="true">↗</span>
         </button>
-        <p className="mt-[18px] text-[9px] text-app-faint">&nbsp;</p>
+        <p className="mt-4.5 text-[9px] text-app-faint">&nbsp;</p>
       </section>
 
       {isAuthOpen && (
