@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthPanel from "@/components/AuthPanel";
+import InvitationCard from "@/components/elements/InvitationCard";
 import ParticleTrail from "@/components/ParticleTrail";
 import { useProgress } from "@/hooks/useProgress";
 
@@ -10,6 +11,7 @@ export default function HomeExperience() {
   const router = useRouter();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isEntranceRevealed, setIsEntranceRevealed] = useState(false);
+  const [isInvitationOpen, setIsInvitationOpen] = useState(false);
   const {
     authError,
     authLoading,
@@ -21,6 +23,10 @@ export default function HomeExperience() {
     submitEmail,
     syncState,
   } = useProgress();
+
+  function openInvitation() {
+    setIsInvitationOpen(true);
+  }
 
   function enterExperience() {
     router.push('/archivo/hub');
@@ -76,17 +82,24 @@ export default function HomeExperience() {
             <div className="entrance-flash" aria-hidden="true" />
             <button
               className="enter-button relative z-[1] flex w-fit justify-center overflow-hidden rounded-2xl border border-transparent bg-black px-5 py-4 text-[20px] tracking-[0.14em] text-app-text transition-colors duration-200 hover:bg-[#fafafa] hover:text-black"
-              onClick={enterExperience}
+              onClick={openInvitation}
             >
               <svg className="enter-button__border" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 <rect x="1" y="1" width="98" height="98" rx="12" ry="25" pathLength="100" />
               </svg>
-              <span className="relative z-[1]">ENTRAR</span>
+               <span className="relative z-[1]">COMENZAR</span>
             </button>
           </div>
         )}
         <p className="mt-4.5 text-[9px] text-app-faint">&nbsp;</p>
       </section>
+
+      {isInvitationOpen && (
+        <InvitationCard
+          onClose={() => setIsInvitationOpen(false)}
+          onEnterHub={enterExperience}
+        />
+      )}
 
       {isAuthOpen && (
         <AuthPanel
