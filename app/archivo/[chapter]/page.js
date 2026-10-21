@@ -1,28 +1,81 @@
-import { notFound } from "next/navigation";
-import Experience from "@/components/Experience";
-import { chapters } from "@/data/chapters";
+"use client";
 
-export function generateStaticParams() {
-  return chapters.map((chapter) => ({ chapter: chapter.id }));
-}
+import { use } from 'react';
+import { useRouter } from 'next/navigation';
+import { chapters } from '../../../data/chapters'; 
 
-export async function generateMetadata({ params }) {
-  const { chapter: chapterId } = await params;
-  const chapter = chapters.find((item) => item.id === chapterId);
+export default function EscenaDinamica({ params }) {
+  const router = useRouter();
+  
+  // Desempaquetamos la promesa de params utilizando React.use()
+  const resolvedParams = use(params);
+  const chapterId = resolvedParams.chapter;
+  
+  const chapterData = chapters[chapterId];
+  const actionButtonClass = "border border-app-border bg-app-surface px-4 py-2 text-sm text-app-text transition-colors hover:border-app-accent hover:text-app-accent focus-visible:outline-2 focus-visible:outline-app-text focus-visible:outline-offset-2";
 
-  if (!chapter) return {};
+  if (!chapterData) {
+    return (
+      <main className="min-h-svh bg-app-background p-8 text-app-text">
+        Escena no encontrada.
+      </main>
+    );
+  }
 
-  return {
-    title: `${chapter.label || "Capítulo"} — Caraval: La Isla de los Sueños`,
-    description: chapter.copy || "Experiencia transmedia de Caraval: La Isla de los Sueños.",
-  };
-}
+  return (
+    <main className="min-h-svh bg-app-background p-8 text-app-text">
+      <h1 className="font-app-display text-4xl text-app-text">{chapterData.title}</h1>
+      <p className="mt-4 max-w-2xl font-app-body leading-relaxed text-app-muted">
+        {chapterData.description}
+      </p>
 
-export default async function ChapterPage({ params }) {
-  const { chapter: chapterId } = await params;
-  const chapterExists = chapters.some((item) => item.id === chapterId);
+      <div className="mt-8 flex flex-wrap gap-4">
+        
+        {chapterId === 'hub' && (
+          <button className={actionButtonClass} onClick={() => router.push('/archivo/tienda')}>
+            Ir a la Tienda
+          </button>
+        )}
+        
+        {chapterId === 'tienda' && (
+          <>
+            <button className={actionButtonClass} onClick={() => router.push('/archivo/carrusel')}>
+              Pagar con Secreto
+            </button>
+            <button className={actionButtonClass} onClick={() => router.push('/archivo/tuneles')}>
+              Pagar con Sangre
+            </button>
+          </>
+        )}
+        
+        {chapterId === 'carrusel' && (
+          <>
+            <button className={actionButtonClass} onClick={() => router.push('/archivo/final-a')}>
+              Confiar en Julian
+            </button>
+            <button className={actionButtonClass} onClick={() => router.push('/archivo/final-b')}>
+              Desconfiar
+            </button>
+          </>
+        )}
+        
+        {chapterId === 'tuneles' && (
+          <>
+            <button className={actionButtonClass} onClick={() => router.push('/archivo/final-c')}>
+              Enfrentarse y firmar
+            </button>
+            <button className={actionButtonClass} onClick={() => router.push('/archivo/final-d')}>
+              Huir
+            </button>
+          </>
+        )}
 
-  if (!chapterExists) notFound();
-
-  return <Experience initialChapterId={chapterId} />;
+        {chapterId.includes('final') && (
+          <button className={actionButtonClass} onClick={() => router.push('/')}>
+            Volver al Inicio
+          </button>
+        )}
+      </div>
+    </main>
+  );
 }

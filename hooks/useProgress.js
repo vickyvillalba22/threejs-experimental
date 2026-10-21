@@ -15,7 +15,7 @@ import { chapters } from "@/data/chapters";
 import { getFirebaseServices, hasFirebaseConfig } from "@/lib/firebase";
 
 const STORAGE_KEY = "signal-88-progress";
-const VALID_CLUE_IDS = new Set(chapters.map((chapter) => chapter.clueId));
+const VALID_CLUE_IDS = new Set(Object.values(chapters).map((chapter) => chapter.id));
 
 function normalizeClues(value) {
   if (!Array.isArray(value)) return [];
