@@ -32,16 +32,18 @@ function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
 
 function createLetterTexture() {
   const canvas = document.createElement("canvas");
-  canvas.width = 2048;
-  canvas.height = 1536;
+  canvas.width = 1536;
+  canvas.height = 2048;
   const context = canvas.getContext("2d");
-  const margin = 150;
+  context.translate(canvas.width, 0);
+  context.scale(-1, 1);
+  const margin = 120;
   const textWidth = canvas.width - margin * 2;
 
   context.fillStyle = "#f4e9c7";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const paperGradient = context.createRadialGradient(1024, 700, 100, 1024, 700, 1100);
+  const paperGradient = context.createRadialGradient(768, 950, 100, 768, 950, 1400);
   paperGradient.addColorStop(0, "rgba(255, 252, 226, 0.28)");
   paperGradient.addColorStop(1, "rgba(120, 74, 36, 0.18)");
   context.fillStyle = paperGradient;
@@ -56,73 +58,75 @@ function createLetterTexture() {
 
   context.textAlign = "center";
   context.fillStyle = "#4f2024";
-  context.font = "600 30px Georgia, serif";
-  context.fillText("DE LA OFICINA DEL MAESTRO DE CEREMONIAS", canvas.width / 2, 160);
-  context.font = "700 76px Georgia, serif";
-  context.fillText("Isla de los Sueños", canvas.width / 2, 265);
+  context.font = "600 34px Georgia, serif";
+  context.fillText("DE LA OFICINA DEL MAESTRO DE CEREMONIAS", canvas.width / 2, 150);
+  context.font = "700 84px Georgia, serif";
+  context.fillText("Isla de los Sueños", canvas.width / 2, 255);
 
   context.strokeStyle = "rgba(115, 45, 43, 0.45)";
   context.lineWidth = 3;
   context.beginPath();
-  context.moveTo(margin + 170, 320);
-  context.lineTo(canvas.width - margin - 170, 320);
+  context.moveTo(margin + 120, 310);
+  context.lineTo(canvas.width - margin - 120, 310);
   context.stroke();
 
   context.textAlign = "left";
   context.fillStyle = "#3f2926";
-  context.font = "32px Georgia, serif";
-  let currentY = 400;
-  currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 48) + 26;
+  context.font = "40px Georgia, serif";
+  let currentY = 390;
+  currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 60) + 30;
   currentY = drawWrappedText(
     context,
     "Ha sido distinguido con un privilegio reservado para muy pocos: atravesar las fronteras de mi feria. Ante usted se abren las puertas de Caraval, un escenario donde los deseos más profundos cobran vida y las ilusiones se entrelazan con la realidad.",
     margin,
     currentY,
     textWidth,
-    48,
-  ) + 26;
+    60,
+  ) + 30;
 
   context.fillStyle = "#70252c";
-  context.font = "700 30px Georgia, serif";
+  context.font = "700 36px Georgia, serif";
   context.fillText("Su Cometido:", margin, currentY);
-  currentY += 58;
+  currentY += 68;
   context.fillStyle = "#3f2926";
-  context.font = "32px Georgia, serif";
+  context.font = "40px Georgia, serif";
   currentY = drawWrappedText(
     context,
     "Adéntrese en mi dominio, descifre las evidencias ocultas entre las sombras y descubra el lugar exacto de mi paradero. Si demuestra la astucia necesaria para encontrarme, seré yo mismo quien le conceda aquello que su corazón más anhela: un deseo mágico.",
     margin,
     currentY,
     textWidth,
-    48,
-  ) + 26;
+    60,
+  ) + 30;
   currentY = drawWrappedText(
     context,
     "Pero le advierto que la magia tiene su precio y los pasillos de esta isla suelen extraviar a los imprudentes. Antes de dar el primer paso y elegir su puerta, grabe en su mente nuestra única y sagrada advertencia:",
     margin,
     currentY,
     textWidth,
-    48,
-  ) + 28;
+    60,
+  ) + 32;
 
   context.textAlign = "center";
   context.fillStyle = "#70252c";
-  context.font = "italic 700 38px Georgia, serif";
+  context.font = "italic 700 46px Georgia, serif";
   context.fillText('“Recuerda, es solo un juego...”', canvas.width / 2, currentY);
   context.textAlign = "right";
-  context.font = "italic 34px Georgia, serif";
+  context.font = "italic 40px Georgia, serif";
   context.fillText("— Legend", canvas.width - margin, currentY + 70);
 
   context.textAlign = "center";
   context.fillStyle = "#70252c";
-  context.font = "700 24px Georgia, serif";
-  context.fillText("MANTENÉ PRESIONADO SOBRE LA ROSA PARA DIRIGIRTE A CARAVAL", canvas.width / 2, canvas.height - 125);
+  context.font = "700 28px Georgia, serif";
+  context.fillText("MANTENÉ PRESIONADO SOBRE LA ROSA PARA DIRIGIRTE A CARAVAL", canvas.width / 2, canvas.height - 120);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.flipY = false;
   texture.center.set(0.5, 0.5);
-  texture.rotation = Math.PI / 2;
+  texture.rotation = 0;
+  texture.repeat.set(1, 1);
+  texture.offset.set(0, 0);
   texture.anisotropy = 4;
   return texture;
 }
@@ -218,10 +222,28 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     container.appendChild(renderer.domElement);
 
     const letterGroup = new THREE.Group();
+    letterGroup.rotation.z = Math.PI / 2;
     scene.add(letterGroup);
     const texture = createLetterTexture();
     const loader = new GLTFLoader();
     let model;
+    let modelSize = null;
+
+    function fitModelToViewport() {
+      if (!model || !modelSize) return;
+
+      const visibleHeight =
+        2 *
+        Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
+        camera.position.z;
+      const visibleWidth = visibleHeight * camera.aspect;
+      const horizontalScale = visibleWidth / modelSize.x;
+      const verticalScale = visibleHeight / modelSize.y;
+      const scale = Math.min(horizontalScale, verticalScale) * 0.86;
+
+      letterGroup.scale.setScalar(scale);
+    }
+
     let isDisposed = false;
 
     loader.load(
@@ -230,6 +252,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
         if (isDisposed) return;
         model = gltf.scene;
         model.rotation.x = Math.PI / 2;
+        model.updateMatrixWorld(true);
         model.traverse((object) => {
           if (!object.isMesh) return;
           object.material = new THREE.MeshStandardMaterial({
@@ -244,7 +267,10 @@ export default function InvitationCard({ onClose, onEnterHub }) {
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         model.position.sub(center);
+        const boundsSize = box.getSize(new THREE.Vector3());
+        modelSize = new THREE.Vector3(boundsSize.y, boundsSize.x, boundsSize.z);
         letterGroup.add(model);
+        fitModelToViewport();
         setIsLoading(false);
       },
       undefined,
@@ -288,6 +314,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       camera.aspect = width / Math.max(height, 1);
       camera.updateProjectionMatrix();
       renderer.setSize(width, height, false);
+      fitModelToViewport();
     }
 
     function animate() {
@@ -338,32 +365,37 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       >
         ×
       </button>
-      <div ref={sceneContainerRef} className="absolute left-1/2 top-1/2 aspect-[1.22] w-[min(88vw,820px)] -translate-x-1/2 -translate-y-1/2" aria-hidden="true" />
-      {isLoading && (
-        <p className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[10px] tracking-[0.16em] text-[#d9cdb8]">
-          ABRIENDO LA INVITACIÓN…
-        </p>
-      )}
-      <button
-        className="group absolute left-1/2 top-[76%] z-[2] grid -translate-x-1/2 place-items-center border-0 bg-transparent p-2 text-[#d9cdb8] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-4"
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          startRoseHold();
-        }}
-        onPointerUp={stopRoseHold}
-        onPointerCancel={stopRoseHold}
-        onPointerLeave={stopRoseHold}
-        onKeyDown={handleRoseKeyDown}
-        onKeyUp={(event) => {
-          if (event.key === "Enter" || event.key === " ") stopRoseHold();
-        }}
-        onBlur={stopRoseHold}
-        aria-label="Mantener presionada la rosa para dirigirte a Caraval"
-        aria-pressed={roseProgress > 0}
+      <div
+        ref={sceneContainerRef}
+        className="absolute left-1/2 top-1/2 aspect-[0.82] h-[min(78svh,700px)] w-auto max-w-[88vw] -translate-x-1/2 -translate-y-1/2"
+        aria-hidden="true"
       >
-        <RoseSymbol progress={roseProgress} />
-        <span className="sr-only">Mantené presionado sobre la rosa para dirigirte a Caraval</span>
-      </button>
+        {isLoading && (
+          <p className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[10px] tracking-[0.16em] text-[#d9cdb8]">
+            ABRIENDO LA INVITACIÓN…
+          </p>
+        )}
+        <button
+          className="group absolute bottom-[7%] left-1/2 z-[2] grid -translate-x-1/2 place-items-center border-0 bg-transparent p-2 text-[#d9cdb8] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-4"
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            startRoseHold();
+          }}
+          onPointerUp={stopRoseHold}
+          onPointerCancel={stopRoseHold}
+          onPointerLeave={stopRoseHold}
+          onKeyDown={handleRoseKeyDown}
+          onKeyUp={(event) => {
+            if (event.key === "Enter" || event.key === " ") stopRoseHold();
+          }}
+          onBlur={stopRoseHold}
+          aria-label="Mantener presionada la rosa para dirigirte a Caraval"
+          aria-pressed={roseProgress > 0}
+        >
+          <RoseSymbol progress={roseProgress} />
+          <span className="sr-only">Mantené presionado sobre la rosa para dirigirte a Caraval</span>
+        </button>
+      </div>
       <h2 id="invitation-title" className="sr-only">Invitación a la Isla de los Sueños</h2>
     </section>
   );
