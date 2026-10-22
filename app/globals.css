@@ -128,3 +128,535 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Pre-hub: the four thresholds live in separate depth planes. */
+.prehub {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(2rem, 7vh, 5rem) clamp(1rem, 5vw, 5rem) 2rem;
+}
+
+.prehub__atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 65%, rgba(136, 127, 105, 0.12), transparent 43%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.07), transparent 50%),
+    linear-gradient(180deg, #070709 0%, #111116 56%, #08080a 100%);
+}
+
+.prehub__header {
+  position: relative;
+  z-index: 5;
+  max-width: 40rem;
+  text-align: center;
+}
+
+.prehub__eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--color-subtle);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+}
+
+.prehub__header h1 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 400;
+  line-height: 0.95;
+}
+
+.prehub__intro {
+  max-width: 29rem;
+  margin: 1rem auto 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+}
+
+.prehub__stage {
+  position: relative;
+  display: grid;
+  width: min(100%, 74rem);
+  min-height: clamp(25rem, 58vh, 37rem);
+  place-items: center;
+  perspective: 1200px;
+  perspective-origin: 50% 56%;
+}
+
+.prehub__floor {
+  position: absolute;
+  bottom: 1.5%;
+  left: 50%;
+  width: min(80%, 60rem);
+  height: 18%;
+  transform: translateX(-50%) rotateX(67deg);
+  transform-origin: bottom;
+  border: 1px solid rgba(220, 211, 187, 0.12);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(180, 169, 142, 0.16), transparent 67%);
+  box-shadow: 0 0 5rem rgba(195, 181, 148, 0.13);
+  pointer-events: none;
+}
+
+.prehub__doors {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  justify-items: center;
+  gap: clamp(0.5rem, 2vw, 1.75rem);
+  width: min(100%, 64rem);
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.prehub-door {
+  position: relative;
+  width: 100%;
+  max-width: 13rem;
+  border: 0;
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  transform: none !important;
+  transition: filter 300ms ease, opacity 300ms ease;
+}
+
+.prehub-door:hover,
+.prehub-door:focus-visible {
+  filter: brightness(1.18);
+}
+
+.prehub-door:focus-visible {
+  outline: 1px solid var(--color-text);
+  outline-offset: 0.75rem;
+}
+
+.prehub-door:hover .prehub-door__frame,
+.prehub-door:focus-visible .prehub-door__frame {
+  border-color: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 0 0.75rem rgba(255, 255, 255, 0.82),
+    0 0 2.5rem rgba(215, 225, 255, 0.3),
+    inset 0 0 1.3rem rgba(255, 255, 255, 0.08);
+}
+
+.prehub-door:disabled {
+  cursor: default;
+}
+
+.prehub-door.is-removed {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.prehub-door--left-back {
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: 1;
+}
+
+.prehub-door--right-back {
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: 1;
+}
+
+.prehub-door--left-front {
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: 1;
+}
+
+.prehub-door--right-front {
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: 1;
+}
+
+.prehub-door__silhouette {
+  position: relative;
+  display: block;
+  height: clamp(16rem, 43vh, 27rem);
+  transform-style: preserve-3d;
+}
+
+.prehub-door__frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.prehub-door--fire.is-active .prehub-door__frame {
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow:
+    0 0 0.8rem rgba(255, 255, 255, 0.95),
+    0 0 2.5rem rgba(255, 255, 255, 0.72),
+    0 0 5rem rgba(220, 220, 220, 0.38);
+}
+
+.prehub-door--fire.is-active .prehub-door__frame::before {
+  position: absolute;
+  inset: -1rem;
+  z-index: -1;
+  display: block;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% 100%, rgba(255, 255, 255, 0.98) 0 7%, transparent 32%),
+    radial-gradient(ellipse at 29% 82%, rgba(255, 255, 255, 0.9) 0 8%, transparent 28%),
+    radial-gradient(ellipse at 47% 100%, rgba(255, 255, 255, 1) 0 9%, transparent 34%),
+    radial-gradient(ellipse at 67% 83%, rgba(255, 255, 255, 0.9) 0 8%, transparent 30%),
+    radial-gradient(ellipse at 88% 100%, rgba(255, 255, 255, 0.98) 0 7%, transparent 32%);
+  filter: blur(0.22rem);
+  mix-blend-mode: screen;
+  animation: prehub-white-fire 1.5s ease-out both;
+}
+
+.prehub-door__flames {
+  position: absolute;
+  inset: auto 3% -0.8rem;
+  z-index: 3;
+  display: flex;
+  height: 47%;
+  align-items: flex-end;
+  justify-content: space-around;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.prehub-door__flames i {
+  display: block;
+  width: 13%;
+  height: 58%;
+  transform-origin: bottom center;
+  border-radius: 55% 45% 48% 52% / 70% 70% 30% 30%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), #ffffff 67%, rgba(255, 255, 255, 0.62));
+  filter: blur(0.08rem) drop-shadow(0 0 0.45rem rgba(255, 255, 255, 0.95));
+}
+
+.prehub-door--fire.is-active .prehub-door__flames {
+  opacity: 1;
+  animation: prehub-flames-rise 1.5s ease-out both;
+}
+
+.prehub-door--fire.is-active .prehub-door__flames i {
+  animation: prehub-flame-dance 0.55s ease-in-out infinite alternate;
+}
+
+.prehub-door--fire.is-active .prehub-door__flames i:nth-child(2) {
+  height: 82%;
+  animation-delay: -0.18s;
+  animation-duration: 0.7s;
+}
+
+.prehub-door--fire.is-active .prehub-door__flames i:nth-child(3) {
+  height: 64%;
+  animation-delay: -0.42s;
+  animation-duration: 0.48s;
+}
+
+.prehub-door--fire.is-active .prehub-door__flames i:nth-child(4) {
+  height: 94%;
+  animation-delay: -0.3s;
+  animation-duration: 0.76s;
+}
+
+.prehub-door--fire.is-active .prehub-door__flames i:nth-child(5) {
+  height: 68%;
+  animation-delay: -0.52s;
+  animation-duration: 0.6s;
+}
+
+.prehub-door--fire.is-active .prehub-door__flames i:nth-child(6) {
+  height: 86%;
+  animation-delay: -0.08s;
+  animation-duration: 0.67s;
+}
+
+.prehub-door--fire.is-active .prehub-door__flames i:nth-child(7) {
+  height: 55%;
+  animation-delay: -0.36s;
+  animation-duration: 0.5s;
+}
+
+.prehub-door__face {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.7) 0 0.09rem, transparent 0.15rem),
+    radial-gradient(circle at 67% 18%, rgba(255, 255, 255, 0.65) 0 0.11rem, transparent 0.18rem),
+    radial-gradient(circle at 84% 42%, rgba(255, 255, 255, 0.62) 0 0.08rem, transparent 0.14rem),
+    radial-gradient(circle at 35% 68%, rgba(255, 255, 255, 0.55) 0 0.1rem, transparent 0.17rem),
+    radial-gradient(circle at 73% 82%, rgba(255, 255, 255, 0.65) 0 0.09rem, transparent 0.16rem),
+    radial-gradient(circle at 7% 61%, rgba(255, 255, 255, 0.42) 0 0.06rem, transparent 0.12rem),
+    radial-gradient(circle at 48% 32%, rgba(255, 255, 255, 0.38) 0 0.05rem, transparent 0.11rem),
+    radial-gradient(circle at 93% 76%, rgba(255, 255, 255, 0.44) 0 0.06rem, transparent 0.12rem),
+    radial-gradient(ellipse at 62% 48%, rgba(190, 190, 190, 0.16), transparent 38%),
+    linear-gradient(135deg, #080808, #181818 48%, #090909);
+  box-shadow: none;
+}
+
+.prehub-door__grain,
+.prehub-door__grain::before,
+.prehub-door__grain::after {
+  position: absolute;
+  inset: 0;
+  display: block;
+  content: "";
+  z-index: 1;
+  opacity: 0.82;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.95) 0 0.07rem, transparent 0.13rem),
+    radial-gradient(circle at 44% 8%, rgba(255, 255, 255, 0.9) 0 0.06rem, transparent 0.12rem),
+    radial-gradient(circle at 91% 22%, rgba(255, 255, 255, 0.85) 0 0.08rem, transparent 0.14rem),
+    radial-gradient(circle at 29% 45%, rgba(255, 255, 255, 0.8) 0 0.07rem, transparent 0.13rem),
+    radial-gradient(circle at 78% 57%, rgba(255, 255, 255, 0.9) 0 0.06rem, transparent 0.12rem),
+    radial-gradient(circle at 14% 86%, rgba(255, 255, 255, 0.8) 0 0.08rem, transparent 0.14rem),
+    radial-gradient(circle at 59% 91%, rgba(255, 255, 255, 0.85) 0 0.07rem, transparent 0.13rem),
+    radial-gradient(circle at 20% 72%, rgba(255, 255, 255, 0.65) 0 0.05rem, transparent 0.11rem),
+    radial-gradient(circle at 84% 8%, rgba(255, 255, 255, 0.7) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 69% 36%, rgba(255, 255, 255, 0.6) 0 0.04rem, transparent 0.09rem),
+    radial-gradient(circle at 40% 78%, rgba(255, 255, 255, 0.62) 0 0.05rem, transparent 0.1rem);
+}
+
+.prehub-door__grain::before {
+  transform: translate(0.3rem, 0.4rem) scale(1.1);
+  opacity: 0.34;
+}
+
+.prehub-door__grain::after {
+  transform: translate(-0.25rem, -0.2rem) scale(0.9);
+  opacity: 0.28;
+}
+
+.prehub-door__arch {
+  display: none;
+}
+
+.prehub-door__handle {
+  position: absolute;
+  top: 50%;
+  right: 10%;
+  z-index: 2;
+  display: block;
+  width: 0.45rem;
+  height: 0.45rem;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0.35rem rgba(255, 255, 255, 0.45);
+}
+
+.prehub-door__aura {
+  display: none;
+}
+
+.prehub-door__caption {
+  display: none;
+}
+
+.prehub-door--fire.is-active .prehub-door__silhouette {
+  animation: prehub-fire 1.5s ease-in both;
+}
+
+.prehub-door--fire.is-active .prehub-door__aura {
+  background: radial-gradient(ellipse, rgba(255, 75, 11, 0.75), transparent 66%);
+  animation: prehub-flare 1.5s ease-out both;
+}
+
+.prehub-door--water.is-active .prehub-door__silhouette {
+  animation: prehub-water 1.5s ease-in both;
+}
+
+.prehub-door--water.is-active .prehub-door__face {
+  background: linear-gradient(180deg, rgba(46, 163, 194, 0.75), #0a151b 70%);
+  animation: prehub-dissolve 1.5s ease-in both;
+}
+
+.prehub-door--shards.is-active .prehub-door__silhouette {
+  animation: prehub-shatter 1.5s ease-in both;
+}
+
+.prehub-door--correct.is-active .prehub-door__silhouette {
+  animation: prehub-open 1.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.prehub-door--correct.is-active .prehub-door__face {
+  box-shadow: inset 0 0 4rem rgba(245, 237, 205, 0.88), 0 0 2rem rgba(235, 218, 159, 0.5);
+}
+
+.prehub-door__shards,
+.prehub-door__shards i {
+  position: absolute;
+  display: block;
+}
+
+.prehub-door__shards {
+  inset: 0;
+}
+
+.prehub-door__shards i {
+  width: 1px;
+  height: 125%;
+  top: -10%;
+  left: 48%;
+  background: rgba(244, 235, 201, 0.75);
+  transform: rotate(24deg);
+  box-shadow: 0 0 0.4rem rgba(244, 235, 201, 0.7);
+}
+
+.prehub-door__shards i:nth-child(2) { transform: rotate(-39deg) translateX(2.4rem); }
+.prehub-door__shards i:nth-child(3) { transform: rotate(72deg) translateX(-1.5rem); }
+.prehub-door__shards i:nth-child(4) { transform: rotate(-73deg) translateX(1.2rem); }
+
+.prehub__status {
+  min-height: 1.4rem;
+  margin: 0;
+  color: var(--color-subtle);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+@keyframes prehub-fire {
+  0% { filter: brightness(1); transform: scale(1); }
+  15% { filter: brightness(2.2) sepia(1); transform: scale(1.04) translateY(-0.3rem); }
+  45% { filter: brightness(1.5) sepia(1); transform: scale(1.08) rotate(2deg); }
+  100% { opacity: 0; filter: blur(0.4rem); transform: scale(0.72) translateY(2rem); }
+}
+
+@keyframes prehub-flare {
+  0% { opacity: 0; transform: scale(0.6); }
+  20% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2.1); }
+}
+
+@keyframes prehub-white-fire {
+  0% {
+    opacity: 0;
+    transform: scale(0.82) translateY(0.5rem);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-0.2rem);
+  }
+  52% {
+    opacity: 0.92;
+    transform: scale(1.12) translateY(-0.55rem) skewX(-2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25) translateY(-1.25rem);
+  }
+}
+
+@keyframes prehub-flames-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.72);
+  }
+  16% { opacity: 1; }
+  70% { opacity: 0.94; }
+  100% {
+    opacity: 0;
+    transform: translateY(-1rem) scale(1.16);
+  }
+}
+
+@keyframes prehub-flame-dance {
+  from { transform: rotate(-8deg) scaleX(0.82); }
+  to { transform: rotate(8deg) scaleX(1.08) translateY(-0.25rem); }
+}
+
+@keyframes prehub-water {
+  0%, 100% { transform: translateX(0) skewX(0); }
+  20% { transform: translateX(-0.4rem) skewX(-2deg); }
+  42% { transform: translateX(0.4rem) skewX(2deg); }
+  100% { opacity: 0; filter: blur(0.45rem); transform: translateY(2rem) scaleY(0.35); }
+}
+
+@keyframes prehub-dissolve {
+  0% { opacity: 1; filter: saturate(1); }
+  55% { opacity: 0.55; filter: saturate(2) hue-rotate(10deg); }
+  100% { opacity: 0; }
+}
+
+@keyframes prehub-shatter {
+  0% { opacity: 1; transform: scale(1); }
+  28% { transform: scale(1.04) rotate(-1deg); }
+  100% { opacity: 0; transform: translate(0.6rem, 2rem) rotate(5deg) scale(0.85); filter: blur(0.3rem); }
+}
+
+@keyframes prehub-open {
+  0% { transform: scale(1); }
+  35% { filter: brightness(1.8); transform: scale(1.05); }
+  100% { filter: brightness(3); opacity: 0; transform: translateZ(8rem) scale(1.45); }
+}
+
+@media (max-width: 700px) {
+  .prehub {
+    padding-top: 2rem;
+  }
+
+  .prehub__stage {
+    min-height: 32rem;
+    width: 100%;
+  }
+
+  .prehub__doors {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 0.75rem;
+  }
+
+  .prehub-door {
+    width: clamp(6.8rem, 29vw, 9.5rem);
+  }
+
+  .prehub-door__silhouette {
+    height: clamp(12rem, 32vh, 15rem);
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prehub-door--fire.is-active .prehub-door__silhouette,
+  .prehub-door--water.is-active .prehub-door__silhouette,
+  .prehub-door--shards.is-active .prehub-door__silhouette,
+  .prehub-door--correct.is-active .prehub-door__silhouette {
+    animation-duration: 0.01ms;
+  }
+}

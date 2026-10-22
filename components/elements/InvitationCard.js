@@ -1,10 +1,55 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 export default function InvitationCard({ onClose, onEnterHub }) {
   const sceneContainerRef = useRef(null);
+  const holdAnimationRef = useRef(null);
+  const holdStartRef = useRef(null);
+  const [roseProgress, setRoseProgress] = useState(0);
+
+  const holdDuration = 1800;
+
+  function animateRoseHold(timestamp) {
+    if (holdStartRef.current === null) {
+      holdStartRef.current = timestamp;
+    }
+
+    const progress = Math.min((timestamp - holdStartRef.current) / holdDuration, 1);
+    setRoseProgress(progress);
+
+    if (progress >= 1) {
+      holdAnimationRef.current = null;
+      holdStartRef.current = null;
+      onEnterHub();
+      return;
+    }
+
+    holdAnimationRef.current = window.requestAnimationFrame(animateRoseHold);
+  }
+
+  function startRoseHold() {
+    if (holdAnimationRef.current !== null) return;
+    holdStartRef.current = null;
+    holdAnimationRef.current = window.requestAnimationFrame(animateRoseHold);
+  }
+
+  function stopRoseHold() {
+    if (holdAnimationRef.current !== null) {
+      window.cancelAnimationFrame(holdAnimationRef.current);
+      holdAnimationRef.current = null;
+    }
+    holdStartRef.current = null;
+    setRoseProgress(0);
+  }
+
+  function handleRoseKeyDown(event) {
+    if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+      event.preventDefault();
+      startRoseHold();
+    }
+  }
 
   useEffect(() => {
     const container = sceneContainerRef.current;
@@ -165,6 +210,12 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     };
   }, []);
 
+  useEffect(() => () => {
+    if (holdAnimationRef.current !== null) {
+      window.cancelAnimationFrame(holdAnimationRef.current);
+    }
+  }, []);
+
   return (
     <section
       className="fixed inset-0 z-[50] grid place-items-center overflow-hidden bg-[rgba(11,11,13,0.92)] p-5 backdrop-blur-[12px]"
@@ -193,13 +244,13 @@ export default function InvitationCard({ onClose, onEnterHub }) {
           >
             Isla de los Sueños
           </h2>
-          <div className="mx-auto mb-8 max-w-[390px] text-left font-app-body text-sm leading-relaxed text-app-muted">
+          <div className="mx-auto mb-8 max-w-[390px] text-left font-app-body text-md leading-relaxed">
             <p className="mb-5">Estimado participante:</p>
             <p className="mb-5">
-              Ha sido distinguido con un privilegio reservado para muy pocos: atravesar las fronteras de mi feria. Ante usted se abren las puertas de Caraval, un escenario donde los deseos más profundos cobran vida y las ilusiones se entrelazan con la realidad.
+              Ha recibido un privilegio reservado para muy pocos: atravesar las fronteras de mi feria. Ante usted se abren las puertas de Caraval, un escenario donde los deseos más profundos cobran vida y las ilusiones se entrelazan con la realidad.
             </p>
             <h3 className="mb-2 text-[11px] font-bold tracking-[0.12em] text-app-text">
-              Su Cometido:
+              Su Objetivo:
             </h3>
             <p className="mb-5">
               Adéntrese en mi dominio, descifre las evidencias ocultas entre las sombras y descubra el lugar exacto de mi paradero. Si demuestra la astucia necesaria para encontrarme, seré yo mismo quien le conceda aquello que su corazón más anhela: un deseo mágico.
@@ -208,16 +259,62 @@ export default function InvitationCard({ onClose, onEnterHub }) {
               Pero le advierto que la magia tiene su precio y los pasillos de esta isla suelen extraviar a los imprudentes. Antes de dar el primer paso y elegir su puerta, grabe en su mente nuestra única y sagrada advertencia:
             </p>
             <p className="mb-5 text-center text-app-text">
-              &quot;Recuerda, es solo un juego...&quot;
+              &quot;Es solo un juego...&quot;
             </p>
             <p className="text-right">— Legend</p>
           </div>
-          <button
-            className="border border-app-accent bg-app-accent px-5 py-4 text-[11px] font-bold tracking-[0.14em] text-app-background transition-colors hover:bg-transparent hover:text-app-accent"
-            onClick={onEnterHub}
-          >
-            ENTRAR AL HUB
-          </button>
+          <div className="mt-2 flex flex-col items-center gap-4">
+            <button
+              className="group relative grid h-[118px] w-[118px] place-items-center rounded-full border border-[#6f2936] bg-[#120d10]/80 text-app-text shadow-[0_0_28px_rgba(100,20,40,0.18)] transition-all duration-300 hover:border-[#b8324e] hover:shadow-[0_0_36px_rgba(190,30,60,0.35)] focus-visible:outline-2 focus-visible:outline-app-text focus-visible:outline-offset-4"
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                startRoseHold();
+              }}
+              onPointerUp={stopRoseHold}
+              onPointerCancel={stopRoseHold}
+              onPointerLeave={stopRoseHold}
+              onKeyDown={handleRoseKeyDown}
+              onKeyUp={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  stopRoseHold();
+                }
+              }}
+              onBlur={stopRoseHold}
+              aria-label="Mantener presionada la rosa para dirigirte a Caraval"
+              aria-pressed={roseProgress > 0}
+            >
+              <svg
+                className="h-[82px] w-[82px] transition-[filter] duration-300"
+                style={{ filter: `drop-shadow(0 0 ${roseProgress * 12 + 2}px rgba(210, 30, 60, ${0.18 + roseProgress * 0.55}))` }}
+                viewBox="0 0 120 120"
+                role="img"
+                aria-hidden="true"
+              >
+                <defs>
+                  <clipPath id="rose-fill-clip">
+                    <rect x="0" y={120 - roseProgress * 120} width="120" height={roseProgress * 120} />
+                  </clipPath>
+                </defs>
+                <g fill="#35151d" stroke="#713142" strokeWidth="1.5" strokeLinejoin="round">
+                  <path d="M59 51C40 47 29 34 39 23c8-9 18 0 20 9 1-16 16-23 24-13 8 10-2 22-15 29 17-5 29 2 27 13-2 12-19 13-32 5 10 11 7 26-5 27-13 1-17-15-13-28-8 12-22 12-28 3-6-10 6-20 21-20Z" />
+                  <path d="M57 53C48 42 49 29 59 27c10-2 14 10 10 20 9-10 22-8 24 1 2 10-10 16-22 15 12 7 13 19 5 24-9 5-18-6-19-18-4 12-16 15-22 8-6-7 2-18 13-24Z" />
+                  <path d="M55 65c-4 14-5 27-2 39h13c-3-14-2-27-5-40Z" />
+                  <path d="M53 89c-10-7-19-7-27-3 8 2 14 7 18 15-1-6 2-10 9-12Z" />
+                  <path d="M63 91c10-7 19-7 27-3-8 2-14 7-18 15 1-6-2-10-9-12Z" />
+                </g>
+                <g clipPath="url(#rose-fill-clip)" fill="#c52243" stroke="#f0526d" strokeWidth="1.5" strokeLinejoin="round">
+                  <path d="M59 51C40 47 29 34 39 23c8-9 18 0 20 9 1-16 16-23 24-13 8 10-2 22-15 29 17-5 29 2 27 13-2 12-19 13-32 5 10 11 7 26-5 27-13 1-17-15-13-28-8 12-22 12-28 3-6-10 6-20 21-20Z" />
+                  <path d="M57 53C48 42 49 29 59 27c10-2 14 10 10 20 9-10 22-8 24 1 2 10-10 16-22 15 12 7 13 19 5 24-9 5-18-6-19-18-4 12-16 15-22 8-6-7 2-18 13-24Z" />
+                  <path d="M55 65c-4 14-5 27-2 39h13c-3-14-2-27-5-40Z" />
+                  <path d="M53 89c-10-7-19-7-27-3 8 2 14 7 18 15-1-6 2-10 9-12Z" />
+                  <path d="M63 91c10-7 19-7 27-3-8 2-14 7-18 15 1-6-2-10-9-12Z" />
+                </g>
+              </svg>
+            </button>
+            <p className="max-w-[260px] text-[10px] leading-relaxed tracking-[0.1em] text-app-faint">
+              MANTENÉ PRESIONADO SOBRE LA ROSA PARA DIRIGIRTE A CARAVAL
+            </p>
+          </div>
         </div>
       </div>
     </section>

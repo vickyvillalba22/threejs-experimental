@@ -3,6 +3,7 @@
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { chapters } from '../../../data/chapters'; 
+import HubExperience from '@/components/hub/HubExperience';
 
 export default function EscenaDinamica({ params }) {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function EscenaDinamica({ params }) {
     );
   }
 
-  return (
+  const hubContent = (
     <main className="min-h-svh bg-app-background p-8 text-app-text">
       <h1 className="font-app-display text-4xl text-app-text">{chapterData.title}</h1>
       <p className="mt-4 max-w-2xl font-app-body leading-relaxed text-app-muted">
@@ -30,13 +31,12 @@ export default function EscenaDinamica({ params }) {
       </p>
 
       <div className="mt-8 flex flex-wrap gap-4">
-        
         {chapterId === 'hub' && (
           <button className={actionButtonClass} onClick={() => router.push('/archivo/tienda')}>
             Ir a la Tienda
           </button>
         )}
-        
+
         {chapterId === 'tienda' && (
           <>
             <button className={actionButtonClass} onClick={() => router.push('/archivo/carrusel')}>
@@ -47,7 +47,7 @@ export default function EscenaDinamica({ params }) {
             </button>
           </>
         )}
-        
+
         {chapterId === 'carrusel' && (
           <>
             <button className={actionButtonClass} onClick={() => router.push('/archivo/final-a')}>
@@ -58,7 +58,7 @@ export default function EscenaDinamica({ params }) {
             </button>
           </>
         )}
-        
+
         {chapterId === 'tuneles' && (
           <>
             <button className={actionButtonClass} onClick={() => router.push('/archivo/final-c')}>
@@ -77,5 +77,11 @@ export default function EscenaDinamica({ params }) {
         )}
       </div>
     </main>
+  );
+
+  return chapterId === 'hub' ? (
+    <HubExperience>{hubContent}</HubExperience>
+  ) : (
+    hubContent
   );
 }
