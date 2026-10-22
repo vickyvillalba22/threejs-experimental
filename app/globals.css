@@ -137,7 +137,8 @@
   min-height: 100svh;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: clamp(1.5rem, 4vh, 3rem);
   padding: clamp(2rem, 7vh, 5rem) clamp(1rem, 5vw, 5rem) 2rem;
 }
 
@@ -146,40 +147,7 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 65%, rgba(136, 127, 105, 0.12), transparent 43%),
-    radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.07), transparent 50%),
-    linear-gradient(180deg, #070709 0%, #111116 56%, #08080a 100%);
-}
-
-.prehub__header {
-  position: relative;
-  z-index: 5;
-  max-width: 40rem;
-  text-align: center;
-}
-
-.prehub__eyebrow {
-  margin: 0 0 0.75rem;
-  color: var(--color-subtle);
-  font-size: 0.72rem;
-  letter-spacing: 0.28em;
-}
-
-.prehub__header h1 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: clamp(2.5rem, 6vw, 5.5rem);
-  font-weight: 400;
-  line-height: 0.95;
-}
-
-.prehub__intro {
-  max-width: 29rem;
-  margin: 1rem auto 0;
-  color: var(--color-muted);
-  font-size: 0.9rem;
-  letter-spacing: 0.08em;
+  background: #000;
 }
 
 .prehub__stage {
@@ -192,18 +160,12 @@
   perspective-origin: 50% 56%;
 }
 
-.prehub__floor {
+.prehub-particles-canvas {
   position: absolute;
-  bottom: 1.5%;
-  left: 50%;
-  width: min(80%, 60rem);
-  height: 18%;
-  transform: translateX(-50%) rotateX(67deg);
-  transform-origin: bottom;
-  border: 1px solid rgba(220, 211, 187, 0.12);
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(180, 169, 142, 0.16), transparent 67%);
-  box-shadow: 0 0 5rem rgba(195, 181, 148, 0.13);
+  inset: 0;
+  z-index: 20;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 
@@ -297,7 +259,7 @@
 .prehub-door__silhouette {
   position: relative;
   display: block;
-  height: clamp(16rem, 43vh, 27rem);
+  height: calc(clamp(16rem, 43vh, 27rem) + 40px);
   transform-style: preserve-3d;
 }
 
@@ -336,7 +298,7 @@
     radial-gradient(ellipse at 88% 100%, rgba(255, 255, 255, 0.98) 0 7%, transparent 32%);
   filter: blur(0.22rem);
   mix-blend-mode: screen;
-  animation: prehub-white-fire 1.5s ease-out both;
+  animation: prehub-white-fire 2.2s ease-out both;
 }
 
 .prehub-door__flames {
@@ -363,7 +325,7 @@
 
 .prehub-door--fire.is-active .prehub-door__flames {
   opacity: 1;
-  animation: prehub-flames-rise 1.5s ease-out both;
+  animation: prehub-flames-rise 2.2s ease-out both;
 }
 
 .prehub-door--fire.is-active .prehub-door__flames i {
@@ -405,6 +367,132 @@
   animation-delay: -0.36s;
   animation-duration: 0.5s;
 }
+
+.prehub-door__ripples,
+.prehub-door__droplets,
+.prehub-door__glass-pieces {
+  display: none;
+  pointer-events: none;
+}
+
+.prehub-door--water.is-active .prehub-door__ripples {
+  position: absolute;
+  inset: 8% 8%;
+  z-index: 3;
+  display: block;
+}
+
+.prehub-door__ripples i {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  display: block;
+  width: 28%;
+  height: 18%;
+  transform: translate(-50%, -50%) scale(0.2);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 50%;
+  opacity: 0;
+  animation: prehub-ripple 1.3s ease-out infinite;
+}
+
+.prehub-door__ripples i:nth-child(2) {
+  animation-delay: 0.34s;
+}
+
+.prehub-door__ripples i:nth-child(3) {
+  animation-delay: 0.68s;
+}
+
+.prehub-door--water.is-active .prehub-door__droplets {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: block;
+}
+
+.prehub-door__droplets i {
+  position: absolute;
+  display: block;
+  width: 0.38rem;
+  height: 0.62rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 70% 30% 65% 35%;
+  opacity: 0;
+  animation: prehub-droplet 1.35s ease-in infinite;
+}
+
+.prehub-door__droplets i:nth-child(1) { left: 12%; top: 35%; }
+.prehub-door__droplets i:nth-child(2) { left: 28%; top: 17%; animation-delay: 0.18s; }
+.prehub-door__droplets i:nth-child(3) { right: 22%; top: 28%; animation-delay: 0.4s; }
+.prehub-door__droplets i:nth-child(4) { right: 9%; top: 58%; animation-delay: 0.62s; }
+.prehub-door__droplets i:nth-child(5) { left: 41%; top: 8%; animation-delay: 0.82s; }
+
+.prehub-door--shards.is-active .prehub-door__glass-pieces {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: block;
+}
+
+.prehub-door__correct-particles {
+  display: none;
+  pointer-events: none;
+}
+
+.prehub-door--correct.is-active .prehub-door__correct-particles {
+  position: absolute;
+  inset: -38% -34%;
+  z-index: 5;
+  display: block;
+  opacity: 1;
+  filter: drop-shadow(0 0 0.45rem rgba(255, 255, 255, 0.9));
+}
+
+.prehub-door__correct-particles i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0.6rem rgba(255, 255, 255, 1), 0 0 1.1rem rgba(255, 255, 255, 0.75);
+  animation: prehub-correct-particle 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.prehub-door__correct-particles i:nth-child(1) { --particle-x: -8rem; --particle-y: -8rem; --particle-scale: 0.8; }
+.prehub-door__correct-particles i:nth-child(2) { --particle-x: -3.5rem; --particle-y: -10rem; --particle-scale: 1.3; animation-delay: 0.04s; }
+.prehub-door__correct-particles i:nth-child(3) { --particle-x: 3rem; --particle-y: -9rem; --particle-scale: 0.7; animation-delay: 0.08s; }
+.prehub-door__correct-particles i:nth-child(4) { --particle-x: 8rem; --particle-y: -5rem; --particle-scale: 1.1; animation-delay: 0.12s; }
+.prehub-door__correct-particles i:nth-child(5) { --particle-x: 9rem; --particle-y: 1rem; --particle-scale: 0.75; animation-delay: 0.16s; }
+.prehub-door__correct-particles i:nth-child(6) { --particle-x: 6rem; --particle-y: 8rem; --particle-scale: 1.2; animation-delay: 0.2s; }
+.prehub-door__correct-particles i:nth-child(7) { --particle-x: 1rem; --particle-y: 10rem; --particle-scale: 0.8; animation-delay: 0.24s; }
+.prehub-door__correct-particles i:nth-child(8) { --particle-x: -5rem; --particle-y: 9rem; --particle-scale: 1.15; animation-delay: 0.28s; }
+.prehub-door__correct-particles i:nth-child(9) { --particle-x: -9rem; --particle-y: 4rem; --particle-scale: 0.7; animation-delay: 0.32s; }
+.prehub-door__correct-particles i:nth-child(10) { --particle-x: -6rem; --particle-y: -2rem; --particle-scale: 1.05; animation-delay: 0.36s; }
+.prehub-door__correct-particles i:nth-child(11) { --particle-x: 0.2rem; --particle-y: -5rem; --particle-scale: 0.6; animation-delay: 0.4s; }
+.prehub-door__correct-particles i:nth-child(12) { --particle-x: 4rem; --particle-y: 3rem; --particle-scale: 0.9; animation-delay: 0.44s; }
+
+.prehub-door__glass-pieces i {
+  position: absolute;
+  display: block;
+  width: 22%;
+  height: 30%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.12);
+  clip-path: polygon(50% 0, 100% 35%, 74% 100%, 18% 78%, 0 30%);
+  opacity: 0;
+  animation: prehub-glass-piece 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.prehub-door__glass-pieces i:nth-child(1) { left: 4%; top: 10%; --piece-x: -2rem; --piece-y: -1.5rem; --piece-r: -28deg; }
+.prehub-door__glass-pieces i:nth-child(2) { left: 34%; top: 4%; --piece-x: 0.3rem; --piece-y: -2.5rem; --piece-r: 22deg; animation-delay: 0.05s; }
+.prehub-door__glass-pieces i:nth-child(3) { right: 4%; top: 18%; --piece-x: 2.4rem; --piece-y: -0.8rem; --piece-r: 38deg; animation-delay: 0.12s; }
+.prehub-door__glass-pieces i:nth-child(4) { left: 12%; bottom: 12%; --piece-x: -2.5rem; --piece-y: 2rem; --piece-r: -44deg; animation-delay: 0.08s; }
+.prehub-door__glass-pieces i:nth-child(5) { left: 44%; bottom: 5%; --piece-x: 0.8rem; --piece-y: 2.8rem; --piece-r: 18deg; animation-delay: 0.16s; }
+.prehub-door__glass-pieces i:nth-child(6) { right: 11%; bottom: 17%; --piece-x: 2.7rem; --piece-y: 1.5rem; --piece-r: 52deg; animation-delay: 0.2s; }
 
 .prehub-door__face {
   position: relative;
@@ -489,33 +577,37 @@
 }
 
 .prehub-door--fire.is-active .prehub-door__silhouette {
-  animation: prehub-fire 1.5s ease-in both;
+  animation: prehub-fire 2.2s ease-in both;
 }
 
 .prehub-door--fire.is-active .prehub-door__aura {
   background: radial-gradient(ellipse, rgba(255, 75, 11, 0.75), transparent 66%);
-  animation: prehub-flare 1.5s ease-out both;
+  animation: prehub-flare 2.2s ease-out both;
 }
 
 .prehub-door--water.is-active .prehub-door__silhouette {
-  animation: prehub-water 1.5s ease-in both;
+  animation: prehub-water 2.2s ease-in both;
 }
 
 .prehub-door--water.is-active .prehub-door__face {
-  background: linear-gradient(180deg, rgba(46, 163, 194, 0.75), #0a151b 70%);
-  animation: prehub-dissolve 1.5s ease-in both;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), #090909 70%);
+  animation: prehub-dissolve 2.2s ease-in both;
 }
 
 .prehub-door--shards.is-active .prehub-door__silhouette {
-  animation: prehub-shatter 1.5s ease-in both;
+  animation: prehub-shatter 2.2s ease-in both;
 }
 
 .prehub-door--correct.is-active .prehub-door__silhouette {
-  animation: prehub-open 1.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: prehub-open 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .prehub-door--correct.is-active .prehub-door__face {
-  box-shadow: inset 0 0 4rem rgba(245, 237, 205, 0.88), 0 0 2rem rgba(235, 218, 159, 0.5);
+  box-shadow:
+    inset 0 0 5rem rgba(255, 255, 255, 0.95),
+    0 0 2rem rgba(255, 255, 255, 0.9),
+    0 0 6rem rgba(255, 255, 255, 0.65),
+    0 0 10rem rgba(255, 255, 255, 0.3);
 }
 
 .prehub-door__shards,
@@ -525,7 +617,12 @@
 }
 
 .prehub-door__shards {
+  display: none;
   inset: 0;
+}
+
+.prehub-door--shards.is-active .prehub-door__shards {
+  display: block;
 }
 
 .prehub-door__shards i {
@@ -544,9 +641,13 @@
 
 .prehub__status {
   min-height: 1.4rem;
+  position: relative;
+  z-index: 2;
+  max-width: 48rem;
   margin: 0;
   color: var(--color-subtle);
-  font-size: 0.78rem;
+  font-size: clamp(1.2rem, 2.7vw, 2rem);
+  font-weight: 400;
   letter-spacing: 0.12em;
   text-align: center;
 }
@@ -580,6 +681,42 @@
   100% {
     opacity: 0;
     transform: scale(1.25) translateY(-1.25rem);
+  }
+}
+
+@keyframes prehub-ripple {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  18% { opacity: 0.78; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3.2);
+  }
+}
+
+@keyframes prehub-droplet {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.8rem) rotate(0deg) scale(0.7);
+  }
+  22% { opacity: 0.85; }
+  100% {
+    opacity: 0;
+    transform: translateY(3.4rem) rotate(18deg) scale(1.05);
+  }
+}
+
+@keyframes prehub-glass-piece {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.72);
+  }
+  18% { opacity: 0.9; }
+  100% {
+    opacity: 0;
+    transform: translate(var(--piece-x), var(--piece-y)) rotate(var(--piece-r)) scale(0.92);
   }
 }
 
@@ -623,7 +760,19 @@
 @keyframes prehub-open {
   0% { transform: scale(1); }
   35% { filter: brightness(1.8); transform: scale(1.05); }
-  100% { filter: brightness(3); opacity: 0; transform: translateZ(8rem) scale(1.45); }
+  100% { filter: brightness(3); opacity: 0; transform: translateZ(8rem) scale(1.8); }
+}
+
+@keyframes prehub-correct-particle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  16% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--particle-x)), calc(-50% + var(--particle-y))) scale(var(--particle-scale));
+  }
 }
 
 @media (max-width: 700px) {
@@ -647,7 +796,7 @@
   }
 
   .prehub-door__silhouette {
-    height: clamp(12rem, 32vh, 15rem);
+    height: calc(clamp(12rem, 32vh, 15rem) + 40px);
   }
 
 }

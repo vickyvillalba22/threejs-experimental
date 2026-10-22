@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import MagicParticlesCanvas from "@/components/hub/MagicParticlesCanvas";
 
 const DOORS = [
   {
@@ -33,13 +34,14 @@ const DOORS = [
   },
 ];
 
-const EFFECT_DURATION = 1500;
+const EFFECT_DURATION = 2200;
 
 export default function PreHub({ onComplete }) {
   const [removedDoors, setRemovedDoors] = useState([]);
   const [activeDoor, setActiveDoor] = useState(null);
   const [status, setStatus] = useState("idle");
   const timerRef = useRef(null);
+  const correctDoorRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -74,30 +76,24 @@ export default function PreHub({ onComplete }) {
     }, EFFECT_DURATION);
   }
 
-  const activeDoorData = DOORS.find((door) => door.id === activeDoor);
-
   return (
     <main className="prehub min-h-svh overflow-hidden bg-app-background font-app-body text-app-text">
       <div className="prehub__atmosphere" aria-hidden="true" />
 
-      <header className="prehub__header">
-        <p className="prehub__eyebrow">ANTES DE LA FERIA</p>
-        <h1 className="font-app-display">Las puertas de Caraval</h1>
-        <p className="prehub__intro">
-          Cuatro umbrales esperan en la oscuridad. Solo uno conduce a la isla.
-        </p>
-      </header>
+      <p className="prehub__status" aria-live="polite">
+        Elije la puerta correcta para llegar a Caraval
+      </p>
 
       <section
         className={`prehub__stage prehub__stage--${status}`}
         aria-label="Puertas de entrada a Caraval"
       >
-        <div className="prehub__floor" aria-hidden="true" />
         <div className="prehub__doors">
           {DOORS.map((door) => (
             <button
               key={door.id}
               type="button"
+              ref={door.effect === "correct" ? correctDoorRef : undefined}
               className={`prehub-door prehub-door--${door.effect} prehub-door--${door.position} ${
                 activeDoor === door.id ? "is-active" : ""
               } ${removedDoors.includes(door.id) ? "is-removed" : ""}`}
@@ -111,7 +107,7 @@ export default function PreHub({ onComplete }) {
                     <span className="prehub-door__grain" />
                     <span className="prehub-door__arch" />
                     <span className="prehub-door__handle" />
-                    {door.effect === "shards" && (
+                  {door.effect === "shards" && (
                       <span className="prehub-door__shards" aria-hidden="true">
                         <i />
                         <i />
@@ -119,7 +115,49 @@ export default function PreHub({ onComplete }) {
                         <i />
                       </span>
                     )}
+                    {door.effect === "water" && (
+                      <span className="prehub-door__ripples" aria-hidden="true">
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    )}
                   </span>
+                  {door.effect === "shards" && (
+                    <span className="prehub-door__glass-pieces" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  )}
+                  {door.effect === "water" && (
+                    <span className="prehub-door__droplets" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  )}
+                  {door.effect === "correct" && (
+                    <span className="prehub-door__correct-particles" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  )}
                   {door.effect === "fire" && (
                     <span className="prehub-door__flames" aria-hidden="true">
                       <i />
@@ -138,14 +176,11 @@ export default function PreHub({ onComplete }) {
             </button>
           ))}
         </div>
+        <MagicParticlesCanvas
+          active={status === "unlocking"}
+          originRef={correctDoorRef}
+        />
       </section>
-
-      <p className="prehub__status" aria-live="polite">
-        {status === "idle" && "Elegí una puerta para descubrir qué hay al otro lado."}
-        {status === "destroying" && activeDoorData &&
-          `${activeDoorData.label} no era la entrada. El umbral se desarma.`}
-        {status === "unlocking" && "La puerta correcta reconoce tu presencia."}
-      </p>
     </main>
   );
 }
