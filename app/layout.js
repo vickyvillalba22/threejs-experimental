@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Darker_Grotesque, Imbue } from "next/font/google";
+import MagicCursor from "@/components/ui/MagicCursor";
 
 const imbue = Imbue({
   subsets: ["latin"],
@@ -21,7 +22,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es" className={`${imbue.variable} ${darkerGrotesque.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <MagicCursor />
+      </body>
     </html>
   );
 }

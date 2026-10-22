@@ -11,7 +11,7 @@ export const chapters = {
   "tienda": {
     id: "tienda",
     title: "La Tienda de Ilusiones",
-    description: "Todo tiene un precio. ¿Cómo vas a pagar por la información de Tella?",
+    description: "Todo tiene un precio. ¿Cómo vas a pagar por la información sobre Legend?",
     // Aquí habrá dos botones:
     // Pagar con Secreto -> router.push('/escena/carrusel')
     // Pagar con Sangre -> router.push('/escena/tuneles')
@@ -21,7 +21,7 @@ export const chapters = {
   "carrusel": {
     id: "carrusel",
     title: "El Carrusel Mágico",
-    description: "Ruta A: Pagaste con un secreto sincero. Te encuentras con Julian.",
+    description: "Ruta A: Pagaste con un secreto sincero. Te encuentras con algo.",
     // Aquí habrá dos botones:
     // Confiar en Julian -> router.push('/escena/final-a')
     // Desconfiar de Julian -> router.push('/escena/final-b')
@@ -39,7 +39,7 @@ export const chapters = {
   "final-a": {
     id: "final-a",
     title: "Final A: El Triunfo",
-    description: "El Balcón del Castillo. Derrotaste el engaño de Legend y obtuviste el deseo."
+    description: "El Balcón del Castillo. Encontraste a Legend y obtuviste el deseo."
   },
   "final-b": {
     id: "final-b",
