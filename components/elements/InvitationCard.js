@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import LegendProgress from "@/components/progress/LegendProgress";
+import { useProgress } from "@/hooks/useProgress";
 
 const HOLD_DURATION = 1800;
 
@@ -30,7 +32,7 @@ function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
   return currentY;
 }
 
-function createLetterTexture() {
+function createLetterTexture(showContent) {
   const canvas = document.createElement("canvas");
   canvas.width = 1536;
   canvas.height = 2048;
@@ -56,69 +58,76 @@ function createLetterTexture() {
   context.lineWidth = 2;
   context.strokeRect(94, 94, canvas.width - 188, canvas.height - 188);
 
-  context.textAlign = "center";
-  context.fillStyle = "#4f2024";
-  context.font = "600 34px Georgia, serif";
-  context.fillText("DE LA OFICINA DEL MAESTRO DE CEREMONIAS", canvas.width / 2, 150);
-  context.font = "700 84px Georgia, serif";
-  context.fillText("Isla de los Sueños", canvas.width / 2, 255);
+  if (showContent) {
+    context.textAlign = "center";
+    context.fillStyle = "#4f2024";
+    context.font = "600 34px Georgia, serif";
+    context.fillText("DE LA OFICINA DEL MAESTRO DE CEREMONIAS", canvas.width / 2, 150);
+    context.font = "700 84px Georgia, serif";
+    context.fillText("Isla de los Sueños", canvas.width / 2, 255);
 
-  context.strokeStyle = "rgba(115, 45, 43, 0.45)";
-  context.lineWidth = 3;
-  context.beginPath();
-  context.moveTo(margin + 120, 310);
-  context.lineTo(canvas.width - margin - 120, 310);
-  context.stroke();
+    context.strokeStyle = "rgba(115, 45, 43, 0.45)";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(margin + 120, 310);
+    context.lineTo(canvas.width - margin - 120, 310);
+    context.stroke();
 
-  context.textAlign = "left";
-  context.fillStyle = "#3f2926";
-  context.font = "40px Georgia, serif";
-  let currentY = 390;
-  currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 60) + 30;
-  currentY = drawWrappedText(
-    context,
-    "Ha sido distinguido con un privilegio reservado para muy pocos: atravesar las fronteras de mi feria. Ante usted se abren las puertas de Caraval, un escenario donde los deseos más profundos cobran vida y las ilusiones se entrelazan con la realidad.",
-    margin,
-    currentY,
-    textWidth,
-    60,
-  ) + 30;
+    context.textAlign = "left";
+    context.fillStyle = "#3f2926";
+    context.font = "40px Georgia, serif";
+    let currentY = 390;
+    currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 60) + 30;
+    currentY = drawWrappedText(
+      context,
+      "Ha sido distinguido con un privilegio reservado para muy pocos: atravesar las fronteras de mi feria. Ante usted se abren las puertas de Caraval, un escenario donde los deseos más profundos cobran vida y las ilusiones se entrelazan con la realidad.",
+      margin,
+      currentY,
+      textWidth,
+      60,
+    ) + 30;
 
-  context.fillStyle = "#70252c";
-  context.font = "700 36px Georgia, serif";
-  context.fillText("Su Cometido:", margin, currentY);
-  currentY += 68;
-  context.fillStyle = "#3f2926";
-  context.font = "40px Georgia, serif";
-  currentY = drawWrappedText(
-    context,
-    "Adéntrese en mi dominio, descifre las evidencias ocultas entre las sombras y descubra el lugar exacto de mi paradero. Si demuestra la astucia necesaria para encontrarme, seré yo mismo quien le conceda aquello que su corazón más anhela: un deseo mágico.",
-    margin,
-    currentY,
-    textWidth,
-    60,
-  ) + 30;
-  currentY = drawWrappedText(
-    context,
-    "Pero le advierto que la magia tiene su precio y los pasillos de esta isla suelen extraviar a los imprudentes. Antes de dar el primer paso y elegir su puerta, grabe en su mente nuestra única y sagrada advertencia:",
-    margin,
-    currentY,
-    textWidth,
-    60,
-  ) + 32;
+    context.fillStyle = "#70252c";
+    context.font = "700 36px Georgia, serif";
+    context.fillText("Su Cometido:", margin, currentY);
+    currentY += 68;
+    context.fillStyle = "#3f2926";
+    context.font = "40px Georgia, serif";
+    currentY = drawWrappedText(
+      context,
+      "Adéntrese en mi dominio y siga el camino que se abre ante usted. En cada escena encontrará objetos que guardan una parte de mí, pero no todos son los correctos. Solo aquellos que pertenecen al camino verdadero harán visible un fragmento auténtico de mi figura. Cuando esté completa, sabrá quién soy y conseguiré para usted un deseo.",
+      margin,
+      currentY,
+      textWidth,
+      60,
+    ) + 30;
+    currentY = drawWrappedText(
+      context,
+      "Pero le advierto que la magia tiene su precio y los pasillos de esta isla suelen extraviar a los imprudentes. Algunas cosas pueden parecerse a la magia, pero no todo lo que brilla pertenece a Legend. Antes de dar el primer paso y elegir su puerta, grabe en su mente nuestra única y sagrada advertencia:",
+      margin,
+      currentY,
+      textWidth,
+      60,
+    ) + 32;
 
-  context.textAlign = "center";
-  context.fillStyle = "#70252c";
-  context.font = "italic 700 46px Georgia, serif";
-  context.fillText('“Recuerda, es solo un juego...”', canvas.width / 2, currentY);
-  context.textAlign = "right";
-  context.font = "italic 40px Georgia, serif";
-  context.fillText("— Legend", canvas.width - margin, currentY + 70);
+    context.textAlign = "center";
+    context.fillStyle = "#70252c";
+    context.font = "italic 700 46px Georgia, serif";
+    context.fillText('“Recuerda, es solo un juego...”', canvas.width / 2, currentY);
+    context.textAlign = "right";
+    context.font = "italic 40px Georgia, serif";
+    context.fillText("— Legend", canvas.width - margin, currentY + 70);
 
-  context.textAlign = "center";
-  context.fillStyle = "#70252c";
-  context.font = "700 28px Georgia, serif";
-  context.fillText("MANTENÉ PRESIONADO SOBRE LA ROSA PARA DIRIGIRTE A CARAVAL", canvas.width / 2, canvas.height - 120);
+    context.textAlign = "center";
+    context.fillStyle = "#70252c";
+    context.font = "700 28px Georgia, serif";
+    context.fillText("MANTENÉ PRESIONADO SOBRE LA ROSA PARA PINTARLA", canvas.width / 2, canvas.height - 120);
+  } else {
+    context.textAlign = "center";
+    context.fillStyle = "rgba(79, 32, 36, 0.5)";
+    context.font = "italic 42px Georgia, serif";
+    context.fillText("La tinta espera una mano.", canvas.width / 2, canvas.height / 2);
+  }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -168,6 +177,13 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const holdStartRef = useRef(null);
   const [roseProgress, setRoseProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasDrawnLetter, setHasDrawnLetter] = useState(false);
+  const [hasPaintedAurio, setHasPaintedAurio] = useState(false);
+  const [aurioMessage, setAurioMessage] = useState("");
+  const { collectArtifact, collectedArtifacts } = useProgress();
+
+  const hasPen = hasDrawnLetter || collectedArtifacts.has("pluma-tinta");
+  const hasAurio = hasPaintedAurio || collectedArtifacts.has("aurio");
 
   function animateRoseHold(timestamp) {
     if (holdStartRef.current === null) holdStartRef.current = timestamp;
@@ -177,7 +193,19 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     if (progress >= 1) {
       holdAnimationRef.current = null;
       holdStartRef.current = null;
-      onEnterHub();
+      if (!hasPen) {
+        setAurioMessage("Primero debes usar la pluma sobre la carta.");
+        return;
+      }
+
+      if (!hasAurio) {
+        collectArtifact({ artifactId: "aurio", result: "correct" });
+        setHasPaintedAurio(true);
+        setAurioMessage("La rosa se transforma en una moneda de Aurio.");
+        window.setTimeout(onEnterHub, 850);
+      } else {
+        onEnterHub();
+      }
       return;
     }
 
@@ -198,6 +226,12 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     }
     holdStartRef.current = null;
     setRoseProgress(0);
+  }
+
+  function drawOnLetter() {
+    if (hasPen) return;
+    collectArtifact({ artifactId: "pluma-tinta", result: "correct" });
+    setHasDrawnLetter(true);
   }
 
   function handleRoseKeyDown(event) {
@@ -224,7 +258,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     const letterGroup = new THREE.Group();
     letterGroup.rotation.z = Math.PI / 2;
     scene.add(letterGroup);
-    const texture = createLetterTexture();
+    const texture = createLetterTexture(hasPen);
     const loader = new GLTFLoader();
     let model;
     let modelSize = null;
@@ -349,7 +383,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       renderer.dispose();
       container.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [hasPen]);
 
   useEffect(() => () => {
     if (holdAnimationRef.current !== null) window.cancelAnimationFrame(holdAnimationRef.current);
@@ -357,6 +391,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
 
   return (
     <section className="fixed inset-0 z-[50] overflow-hidden bg-[#110d0d]" aria-labelledby="invitation-title">
+      <LegendProgress />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(116,46,37,0.2),transparent_58%)]" />
       <button
         className="absolute right-6 top-5 z-[3] border-0 bg-transparent text-3xl text-[#d9cdb8] transition-colors hover:text-white"
@@ -389,14 +424,35 @@ export default function InvitationCard({ onClose, onEnterHub }) {
             if (event.key === "Enter" || event.key === " ") stopRoseHold();
           }}
           onBlur={stopRoseHold}
-          aria-label="Mantener presionada la rosa para dirigirte a Caraval"
+           aria-label="Mantener presionada la rosa para pintarla y dirigirte a Caraval"
           aria-pressed={roseProgress > 0}
         >
           <RoseSymbol progress={roseProgress} />
-          <span className="sr-only">Mantené presionado sobre la rosa para dirigirte a Caraval</span>
+           <span className="sr-only">Mantené presionado sobre la rosa para pintarla y dirigirte a Caraval</span>
         </button>
       </div>
       <h2 id="invitation-title" className="sr-only">Invitación a la Isla de los Sueños</h2>
+      <section className="invitation-interactions" aria-label="Objetos de la invitación">
+        <p className="invitation-interactions__eyebrow">PRIMEROS OBJETOS</p>
+        <p className="invitation-interactions__message">
+          {!hasPen
+            ? "La carta está en blanco. Toma la pluma y dibuja sobre ella."
+            : !hasAurio
+              ? "La carta ha despertado. Mantén presionada la rosa para pintarla."
+              : "La carta guarda sus secretos. Ya puedes dirigirte a Caraval."}
+        </p>
+        {!hasPen && (
+          <button type="button" onClick={drawOnLetter}>
+            TOMAR LA PLUMA Y ESCRIBIR
+          </button>
+        )}
+        {hasPen && !hasAurio && (
+          <p className="invitation-interactions__hint">Mantén presionada la rosa de la carta.</p>
+        )}
+        {aurioMessage && (
+          <p className="invitation-interactions__result" aria-live="polite">{aurioMessage}</p>
+        )}
+      </section>
     </section>
   );
 }

@@ -36,7 +36,7 @@ const DOORS = [
 
 const EFFECT_DURATION = 2200;
 
-export default function PreHub({ onComplete }) {
+export default function PreHub({ onComplete, onKeyFound }) {
   const [removedDoors, setRemovedDoors] = useState([]);
   const [activeDoor, setActiveDoor] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -61,7 +61,9 @@ export default function PreHub({ onComplete }) {
     if (door.effect === "correct") {
       setStatus("unlocking");
       timerRef.current = window.setTimeout(() => {
-        onComplete();
+        onKeyFound?.();
+        setStatus("key-found");
+        timerRef.current = null;
       }, EFFECT_DURATION);
       return;
     }
@@ -181,6 +183,21 @@ export default function PreHub({ onComplete }) {
           originRef={correctDoorRef}
         />
       </section>
+
+      {status === "key-found" && (
+        <div className="prehub__feedback" role="dialog" aria-labelledby="key-found-title">
+          <div className="prehub__feedback-card">
+            <p className="prehub__feedback-eyebrow">OBJETO REVELADO</p>
+            <h1 id="key-found-title">Encontraste la llave</h1>
+            <p>
+              La explosión dejó algo entre las partículas. La llave reconoce tu camino y abre la entrada a Caraval.
+            </p>
+            <button type="button" onClick={onComplete}>
+              ENTRAR A CARAVAL
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

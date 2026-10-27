@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -15,6 +23,7 @@ import { chapters } from "@/data/chapters";
 import { getFirebaseServices, hasFirebaseConfig } from "@/lib/firebase";
 
 const STORAGE_KEY = "signal-88-progress";
+export const LEGEND_FRAGMENT_COUNT = 8;
 const VALID_CLUE_IDS = new Set(Object.values(chapters).map((chapter) => chapter.id));
 
 function normalizeClues(value) {
@@ -22,18 +31,61 @@ function normalizeClues(value) {
   return [...new Set(value.filter((clueId) => VALID_CLUE_IDS.has(clueId)))];
 }
 
+function normalizeArtifacts(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((artifactId) => typeof artifactId === "string"))];
+}
+
+function normalizeFragments(value) {
+  if (!Array.isArray(value)) return [];
+
+  const fragments = value
+    .filter(
+      (fragment) =>
+        fragment &&
+        Number.isInteger(fragment.index) &&
+        fragment.index >= 0 &&
+        fragment.index < LEGEND_FRAGMENT_COUNT &&
+        (fragment.status === "correct" || fragment.status === "incorrect"),
+    )
+    .reduce((result, fragment) => {
+      if (!result.some((item) => item.index === fragment.index)) {
+        result.push({
+          index: fragment.index,
+          status: fragment.status,
+          artifactId: typeof fragment.artifactId === "string" ? fragment.artifactId : null,
+        });
+      }
+      return result;
+    }, []);
+
+  return fragments.sort((a, b) => a.index - b.index);
+}
+
 function readLocal() {
   try {
-    return normalizeClues(
-      JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]"),
-    );
+    const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
+
+    if (Array.isArray(stored)) {
+      return { clues: normalizeClues(stored), artifacts: [], fragments: [] };
+    }
+
+    return {
+      clues: normalizeClues(stored.clues),
+      artifacts: normalizeArtifacts(stored.artifacts),
+      fragments: normalizeFragments(stored.fragments),
+      wish: typeof stored.wish === "string" ? stored.wish : "",
+    };
   } catch {
-    return [];
+    return { clues: [], artifacts: [], fragments: [], wish: "" };
   }
 }
 
-function saveLocal(clues) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(clues));
+function saveLocal({ clues, artifacts, fragments, wish = "" }) {
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ clues, artifacts, fragments, wish }),
+  );
 }
 
 function getProvider(user) {
@@ -58,9 +110,14 @@ async function saveUserProfile(user, db) {
   await setDoc(userRef, profile, { merge: true });
 }
 
-export function useProgress() {
+function useProgressState() {
   const [clues, setClues] = useState([]);
+  const [artifacts, setArtifacts] = useState([]);
+  const [fragments, setFragments] = useState([]);
+  const [wish, setWish] = useState("");
   const cluesRef = useRef([]);
+  const artifactsRef = useRef([]);
+  const fragmentsRef = useRef([]);
   const [ready, setReady] = useState(false);
   const [syncState, setSyncState] = useState("local");
   const [remoteUser, setRemoteUser] = useState(null);
@@ -70,12 +127,17 @@ export function useProgress() {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
-    const localClues = readLocal();
-    cluesRef.current = localClues;
+    const localProgress = readLocal();
+    cluesRef.current = localProgress.clues;
+    artifactsRef.current = localProgress.artifacts;
+    fragmentsRef.current = localProgress.fragments;
 
     const hydrateLocal = window.setTimeout(() => {
-      setClues(localClues);
-      saveLocal(localClues);
+      setClues(localProgress.clues);
+      setArtifacts(localProgress.artifacts);
+      setFragments(localProgress.fragments);
+      setWish(localProgress.wish || "");
+      saveLocal(localProgress);
       setReady(true);
     }, 0);
 
@@ -104,17 +166,36 @@ export function useProgress() {
 
         const progressRef = doc(db, "progress", user.uid);
         const snapshot = await getDoc(progressRef);
-        const remoteClues = normalizeClues(
-          snapshot.exists() ? snapshot.data().clues : [],
-        );
+        const remoteData = snapshot.exists() ? snapshot.data() : {};
+        const remoteClues = normalizeClues(remoteData.clues);
+        const remoteArtifacts = normalizeArtifacts(remoteData.artifacts);
+        const remoteFragments = normalizeFragments(remoteData.fragments);
+        const remoteWish = typeof remoteData.wish === "string" ? remoteData.wish : "";
         const mergedClues = normalizeClues([
           ...cluesRef.current,
           ...remoteClues,
         ]);
+        const mergedArtifacts = normalizeArtifacts([
+          ...artifactsRef.current,
+          ...remoteArtifacts,
+        ]);
+        const mergedFragments = normalizeFragments([
+          ...fragmentsRef.current,
+          ...remoteFragments,
+        ]);
 
         cluesRef.current = mergedClues;
+        artifactsRef.current = mergedArtifacts;
+        fragmentsRef.current = mergedFragments;
         setClues(mergedClues);
-        saveLocal(mergedClues);
+        setArtifacts(mergedArtifacts);
+        setFragments(mergedFragments);
+        setWish(remoteWish || localProgress.wish || "");
+        saveLocal({
+          clues: mergedClues,
+          artifacts: mergedArtifacts,
+          fragments: mergedFragments,
+        });
         remoteUserRef.current = user;
         setRemoteUser(user);
         setAuthUser(user);
@@ -143,25 +224,99 @@ export function useProgress() {
         userId: remoteUser.uid,
         authProvider: getProvider(remoteUser),
         clues,
+        artifacts,
+        fragments,
+        wish,
         updatedAt: serverTimestamp(),
       },
       { merge: true },
     ).catch((error) => console.warn("No se pudo sincronizar el progreso.", error));
-  }, [clues, ready, remoteUser]);
+  }, [artifacts, clues, fragments, ready, remoteUser, wish]);
 
   const discover = useCallback((clueId) => {
     if (!VALID_CLUE_IDS.has(clueId) || cluesRef.current.includes(clueId)) return;
 
     const nextClues = [...cluesRef.current, clueId];
     cluesRef.current = nextClues;
-    saveLocal(nextClues);
+    saveLocal({
+      clues: nextClues,
+      artifacts: artifactsRef.current,
+      fragments: fragmentsRef.current,
+      wish,
+    });
     setClues(nextClues);
-  }, []);
+  }, [wish]);
+
+  const collectArtifact = useCallback(({ artifactId, result = "none" }) => {
+    if (!artifactId) return;
+
+    const existingFragmentIndex = fragmentsRef.current.findIndex(
+      (fragment) => fragment.artifactId === artifactId,
+    );
+
+    if (artifactsRef.current.includes(artifactId)) {
+      if (
+        result !== "incorrect" ||
+        existingFragmentIndex === -1 ||
+        fragmentsRef.current[existingFragmentIndex].status === "incorrect"
+      ) {
+        return;
+      }
+
+      const nextFragments = fragmentsRef.current.map((fragment, index) =>
+        index === existingFragmentIndex
+          ? { ...fragment, status: "incorrect" }
+          : fragment,
+      );
+      fragmentsRef.current = nextFragments;
+      setFragments(nextFragments);
+      saveLocal({
+        clues: cluesRef.current,
+        artifacts: artifactsRef.current,
+        fragments: nextFragments,
+        wish,
+      });
+      return;
+    }
+
+    const nextArtifacts = [...artifactsRef.current, artifactId];
+    let nextFragments = fragmentsRef.current;
+
+    if (
+      (result === "correct" || result === "incorrect") &&
+      fragmentsRef.current.length < LEGEND_FRAGMENT_COUNT
+    ) {
+      nextFragments = [
+        ...fragmentsRef.current,
+        {
+          index: fragmentsRef.current.length,
+          status: result,
+          artifactId,
+        },
+      ];
+    }
+
+    artifactsRef.current = nextArtifacts;
+    fragmentsRef.current = nextFragments;
+    setArtifacts(nextArtifacts);
+    setFragments(nextFragments);
+    saveLocal({
+      clues: cluesRef.current,
+      artifacts: nextArtifacts,
+      fragments: nextFragments,
+      wish,
+    });
+  }, [wish]);
 
   const reset = useCallback(async () => {
     cluesRef.current = [];
-    saveLocal([]);
+    artifactsRef.current = [];
+    fragmentsRef.current = [];
+    saveLocal({ clues: [], artifacts: [], fragments: [], wish: "" });
     setClues([]);
+    setArtifacts([]);
+    setFragments([]);
+    setWish("");
 
     const user = remoteUserRef.current;
     if (!user || !hasFirebaseConfig) return;
@@ -173,10 +328,24 @@ export function useProgress() {
         userId: user.uid,
         authProvider: getProvider(user),
         clues: [],
+        artifacts: [],
+        fragments: [],
+        wish: "",
         updatedAt: serverTimestamp(),
       },
       { merge: true },
     );
+  }, []);
+
+  const saveWish = useCallback((value) => {
+    const nextWish = value.trim();
+    setWish(nextWish);
+    saveLocal({
+      clues: cluesRef.current,
+      artifacts: artifactsRef.current,
+      fragments: fragmentsRef.current,
+      wish: nextWish,
+    });
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
@@ -226,20 +395,47 @@ export function useProgress() {
   }, []);
 
   const discovered = useMemo(() => new Set(clues), [clues]);
+  const collectedArtifacts = useMemo(() => new Set(artifacts), [artifacts]);
 
   return {
+    artifacts,
     authError,
     authLoading,
     authUser,
     clearAuthError: () => setAuthError(""),
     continueAsGuest,
+    collectArtifact,
     discover,
     discovered,
+    fragments,
+    collectedArtifacts,
     firebaseConfigured: hasFirebaseConfig,
     ready,
     reset,
     signInWithGoogle,
     submitEmail,
     syncState,
+    saveWish,
+    wish,
   };
+}
+
+const ProgressContext = createContext(null);
+
+export function ProgressProvider({ children }) {
+  const progress = useProgressState();
+
+  return (
+    <ProgressContext.Provider value={progress}>
+      {children}
+    </ProgressContext.Provider>
+  );
+}
+
+export function useProgress() {
+  const context = useContext(ProgressContext);
+  if (!context) {
+    throw new Error("useProgress debe utilizarse dentro de ProgressProvider");
+  }
+  return context;
 }

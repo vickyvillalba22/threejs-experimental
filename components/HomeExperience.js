@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthPanel from "@/components/AuthPanel";
 import InvitationCard from "@/components/elements/InvitationCard";
+import ExperienceIntroduction from "@/components/onboarding/ExperienceIntroduction";
 import ParticleTrail from "@/components/ParticleTrail";
 import { useProgress } from "@/hooks/useProgress";
 
@@ -11,6 +12,7 @@ export default function HomeExperience() {
   const router = useRouter();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isEntranceRevealed, setIsEntranceRevealed] = useState(false);
+  const [isIntroductionOpen, setIsIntroductionOpen] = useState(false);
   const [isInvitationOpen, setIsInvitationOpen] = useState(false);
   const {
     authError,
@@ -19,17 +21,28 @@ export default function HomeExperience() {
     continueAsGuest,
     firebaseConfigured,
     ready,
+    reset,
     signInWithGoogle,
     submitEmail,
     syncState,
   } = useProgress();
 
   function openInvitation() {
+    setIsIntroductionOpen(true);
+  }
+
+  function openLetter() {
+    setIsIntroductionOpen(false);
     setIsInvitationOpen(true);
   }
 
   function enterExperience() {
     router.push('/archivo/hub');
+  }
+
+  async function handleResetProgress() {
+    if (!window.confirm("¿Querés borrar todo el progreso y comenzar de nuevo?")) return;
+    await reset();
   }
 
   if (!ready) {
@@ -58,6 +71,13 @@ export default function HomeExperience() {
           title={firebaseConfigured ? "Abrir opciones de acceso" : "Configurá Firebase para activar el acceso"}
         >
           {authUser && !authUser.isAnonymous ? "CUENTA" : "INICIAR SESIÓN"}
+        </button>
+        <button
+          className="border border-app-border bg-transparent px-3 py-2 text-[10px] tracking-[0.1em] text-app-muted transition-colors hover:border-red-400 hover:text-red-300 rounded-2xl"
+          onClick={handleResetProgress}
+          type="button"
+        >
+          REINICIAR PROGRESO
         </button>
       </div>
 
@@ -100,6 +120,8 @@ export default function HomeExperience() {
           onEnterHub={enterExperience}
         />
       )}
+
+      {isIntroductionOpen && <ExperienceIntroduction onContinue={openLetter} />}
 
       {isAuthOpen && (
         <AuthPanel

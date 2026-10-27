@@ -7,12 +7,15 @@ import { chapters } from '../../../data/chapters';
 import HubExperience from '@/components/hub/HubExperience';
 import BackButton from '@/components/ui/BackButton';
 import HubPortal3D from '@/components/hub/HubPortal3D';
+import TiendaExperience from '@/components/chapters/tienda/TiendaExperience';
+import CarruselExperience from '@/components/chapters/carrusel/CarruselExperience';
+import FinalAExperience from '@/components/chapters/final/FinalAExperience';
+import { useProgress } from '@/hooks/useProgress';
 
 export default function EscenaDinamica({ params }) {
   const router = useRouter();
-  const [isRiddleOpen, setIsRiddleOpen] = useState(false);
-  const [answer, setAnswer] = useState('');
-  const [answerMessage, setAnswerMessage] = useState('');
+  const { collectArtifact } = useProgress();
+  const [isRoseRevealed, setIsRoseRevealed] = useState(false);
   
   // Desempaquetamos la promesa de params utilizando React.use()
   const resolvedParams = use(params);
@@ -29,13 +32,30 @@ export default function EscenaDinamica({ params }) {
     );
   }
 
+  if (chapterId === 'tienda') {
+    return <TiendaExperience />;
+  }
+
+  if (chapterId === 'carrusel') {
+    return <CarruselExperience />;
+  }
+
+  if (chapterId === 'final-a') {
+    return <FinalAExperience />;
+  }
+
   const hubContent = (
     <main className="relative min-h-svh overflow-hidden bg-app-background p-6 text-app-text sm:p-8">
       <div className="relative z-20">
         <BackButton />
       </div>
       {chapterId === 'hub' ? (
-        <HubPortal3D onAwaken={() => setIsRiddleOpen(true)} />
+         <HubPortal3D
+           onAwaken={() => {
+             collectArtifact({ artifactId: "rosa", result: "correct" });
+             setIsRoseRevealed(true);
+           }}
+         />
       ) : (
         <>
           <h1 className="font-app-display text-4xl text-app-text">{chapterData.title}</h1>
@@ -52,62 +72,29 @@ export default function EscenaDinamica({ params }) {
           <div>
             <h1 className="font-app-display text-5xl text-app-text sm:text-6xl">Bienvenido a Caraval</h1>
             <p className="mt-5 max-w-md font-app-body leading-relaxed text-app-muted">
-              {isRiddleOpen
-                ? 'Resuelve la adivinanza para encontrar el siguiente destino.'
+              {isRoseRevealed
+                ? 'El arco ha revelado una rosa. Tómala y continúa hacia la primera escena.'
                 : 'Mantené presionado el arco de entrada para despertarlo.'}
             </p>
           </div>
         )}
-        {chapterId === 'hub' && isRiddleOpen && (
+        {chapterId === 'hub' && isRoseRevealed && (
           <div className="pointer-events-none fixed inset-0 z-10 flex items-center justify-center p-6">
             <section
               className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/25 bg-black/65 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-sm sm:p-6"
-              aria-label="Primera adivinanza"
+              aria-label="Rosa descubierta"
             >
-              <p className="text-sm leading-relaxed text-app-text sm:text-base">
-                Un lugar de mil estantes
-                <br />
-                y tesoros por mirar,
-                <br />
-                donde compras mil objetos
-                <br />
-                y te los llevas a tu hogar.
+              <p className="font-app-display text-3xl text-app-text">La rosa ha aparecido</p>
+              <p className="mt-4 text-sm leading-relaxed text-app-muted">
+                El arco ha hecho crecer una rosa entre sus líneas. Su fragmento ya forma parte de la figura de Legend.
               </p>
-              <form
-                className="mt-5"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (answer.trim().toLocaleLowerCase() === 'tienda') {
-                    setAnswerMessage('La puerta reconoce tu respuesta.');
-                    window.setTimeout(() => router.push('/archivo/tienda'), 650);
-                  } else {
-                    setAnswerMessage('La puerta permanece en silencio. Intenta otra vez.');
-                  }
-                }}
+              <button
+                type="button"
+                className="mt-5 w-full rounded-xl border border-white/40 px-4 py-3 text-xs tracking-[0.16em] text-app-text transition-colors hover:bg-white hover:text-black"
+                onClick={() => router.push('/archivo/tienda')}
               >
-                <label className="sr-only" htmlFor="hub-riddle-answer">Respuesta</label>
-                <input
-                  id="hub-riddle-answer"
-                  value={answer}
-                  onChange={(event) => {
-                    setAnswer(event.target.value);
-                    setAnswerMessage('');
-                  }}
-                  autoFocus
-                  autoComplete="off"
-                  placeholder="Escribí la respuesta"
-                  className="w-full rounded-xl border border-white/30 bg-black/50 px-4 py-3 text-center text-app-text outline-none transition-colors placeholder:text-white/45 focus:border-white"
-                />
-                <button
-                  type="submit"
-                  className="mt-3 w-full rounded-xl border border-white/40 px-4 py-3 text-xs tracking-[0.16em] text-app-text transition-colors hover:bg-white hover:text-black"
-                >
-                  RESPONDER
-                </button>
-                <p className="mt-3 min-h-5 text-xs text-app-subtle" aria-live="polite">
-                  {answerMessage}
-                </p>
-              </form>
+                CONTINUAR A LA TIENDA
+              </button>
             </section>
           </div>
         )}
@@ -115,10 +102,10 @@ export default function EscenaDinamica({ params }) {
         {chapterId === 'tienda' && (
           <>
             <button className={actionButtonClass} onClick={() => router.push('/archivo/carrusel')}>
-              Pagar con Secreto
+              Pagar con un secreto sincero — revelar un fragmento auténtico
             </button>
             <button className={actionButtonClass} onClick={() => router.push('/archivo/tuneles')}>
-              Pagar con Sangre
+              Pagar con sangre — abrir un camino incierto
             </button>
           </>
         )}
