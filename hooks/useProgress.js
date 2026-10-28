@@ -23,6 +23,7 @@ import { chapters } from "@/data/chapters";
 import { getFirebaseServices, hasFirebaseConfig } from "@/lib/firebase";
 
 const STORAGE_KEY = "signal-88-progress";
+const PROGRESS_PERSISTENCE_ENABLED = process.env.NEXT_PUBLIC_DISABLE_PROGRESS_PERSISTENCE !== "true";
 export const LEGEND_FRAGMENT_COUNT = 8;
 const VALID_CLUE_IDS = new Set(Object.values(chapters).map((chapter) => chapter.id));
 
@@ -63,6 +64,11 @@ function normalizeFragments(value) {
 }
 
 function readLocal() {
+  if (!PROGRESS_PERSISTENCE_ENABLED) {
+    window.localStorage.removeItem(STORAGE_KEY);
+    return { clues: [], artifacts: [], fragments: [], wish: "" };
+  }
+
   try {
     const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
 
@@ -82,6 +88,7 @@ function readLocal() {
 }
 
 function saveLocal({ clues, artifacts, fragments, wish = "" }) {
+  if (!PROGRESS_PERSISTENCE_ENABLED) return;
   window.localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({ clues, artifacts, fragments, wish }),
@@ -125,6 +132,7 @@ function useProgressState() {
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const resetVersionRef = useRef(0);
 
   useEffect(() => {
     const localProgress = readLocal();
@@ -141,10 +149,13 @@ function useProgressState() {
       setReady(true);
     }, 0);
 
-    if (!hasFirebaseConfig) return () => window.clearTimeout(hydrateLocal);
+    if (!hasFirebaseConfig || !PROGRESS_PERSISTENCE_ENABLED) {
+      return () => window.clearTimeout(hydrateLocal);
+    }
 
     const { auth, db } = getFirebaseServices();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const authVersion = resetVersionRef.current;
       if (!user) {
         remoteUserRef.current = null;
         setRemoteUser(null);
@@ -167,6 +178,7 @@ function useProgressState() {
         const progressRef = doc(db, "progress", user.uid);
         const snapshot = await getDoc(progressRef);
         const remoteData = snapshot.exists() ? snapshot.data() : {};
+        if (authVersion !== resetVersionRef.current) return;
         const remoteClues = normalizeClues(remoteData.clues);
         const remoteArtifacts = normalizeArtifacts(remoteData.artifacts);
         const remoteFragments = normalizeFragments(remoteData.fragments);
@@ -183,6 +195,8 @@ function useProgressState() {
           ...fragmentsRef.current,
           ...remoteFragments,
         ]);
+
+        if (authVersion !== resetVersionRef.current) return;
 
         cluesRef.current = mergedClues;
         artifactsRef.current = mergedArtifacts;
@@ -216,7 +230,7 @@ function useProgressState() {
   }, []);
 
   useEffect(() => {
-    if (!ready || !remoteUser) return;
+    if (!PROGRESS_PERSISTENCE_ENABLED || !ready || !remoteUser) return;
     const { db } = getFirebaseServices();
     setDoc(
       doc(db, "progress", remoteUser.uid),
@@ -309,6 +323,7 @@ function useProgressState() {
   }, [wish]);
 
   const reset = useCallback(async () => {
+    resetVersionRef.current += 1;
     cluesRef.current = [];
     artifactsRef.current = [];
     fragmentsRef.current = [];
@@ -319,7 +334,7 @@ function useProgressState() {
     setWish("");
 
     const user = remoteUserRef.current;
-    if (!user || !hasFirebaseConfig) return;
+    if (!user || !hasFirebaseConfig || !PROGRESS_PERSISTENCE_ENABLED) return;
 
     const { db } = getFirebaseServices();
     await setDoc(

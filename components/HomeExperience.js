@@ -8,12 +8,12 @@ import ExperienceIntroduction from "@/components/onboarding/ExperienceIntroducti
 import ParticleTrail from "@/components/ParticleTrail";
 import { useProgress } from "@/hooks/useProgress";
 
-export default function HomeExperience() {
+export default function HomeExperience({ devTarget = "" }) {
   const router = useRouter();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isEntranceRevealed, setIsEntranceRevealed] = useState(false);
   const [isIntroductionOpen, setIsIntroductionOpen] = useState(false);
-  const [isInvitationOpen, setIsInvitationOpen] = useState(false);
+  const [isInvitationOpen, setIsInvitationOpen] = useState(devTarget === "letter");
   const {
     authError,
     authLoading,

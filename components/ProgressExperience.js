@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import LegendProgress from "@/components/progress/LegendProgress";
+import DevNavigation from "@/components/dev/DevNavigation";
 import { ProgressProvider } from "@/hooks/useProgress";
 
 export default function ProgressExperience({ children }) {
@@ -12,6 +13,7 @@ export default function ProgressExperience({ children }) {
     <ProgressProvider>
       {children}
       {isExperienceRoute && <LegendProgress />}
+      <DevNavigation />
     </ProgressProvider>
   );
 }
