@@ -1,0 +1,4 @@
+export const HOLD_DURATION = 1800;
+export const SEAL_TRANSFORM_DURATION = 1500;
+export const COIN_ENTRANCE_DURATION = 1300;
+export const COIN_SAVE_DURATION = 1200;

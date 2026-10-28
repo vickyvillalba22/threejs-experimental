@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import KeyReveal from "@/components/hub/KeyReveal";
 import MagicParticlesCanvas from "@/components/hub/MagicParticlesCanvas";
 
 const DOORS = [
@@ -62,7 +63,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
       setStatus("unlocking");
       timerRef.current = window.setTimeout(() => {
         onKeyFound?.();
-        setStatus("key-found");
+        setStatus("key-revealed");
         timerRef.current = null;
       }, EFFECT_DURATION);
       return;
@@ -83,7 +84,9 @@ export default function PreHub({ onComplete, onKeyFound }) {
       <div className="prehub__atmosphere" aria-hidden="true" />
 
       <p className="prehub__status" aria-live="polite">
-        Elije la puerta correcta para llegar a Caraval
+        {status === "key-revealed"
+          ? "La llave apareció. Hacé click sobre ella para entrar a Caraval."
+          : "Elije la puerta correcta para llegar a Caraval"}
       </p>
 
       <section
@@ -182,22 +185,11 @@ export default function PreHub({ onComplete, onKeyFound }) {
           active={status === "unlocking"}
           originRef={correctDoorRef}
         />
+        {status === "key-revealed" && (
+          <KeyReveal originRef={correctDoorRef} onComplete={onComplete} />
+        )}
       </section>
 
-      {status === "key-found" && (
-        <div className="prehub__feedback" role="dialog" aria-labelledby="key-found-title">
-          <div className="prehub__feedback-card">
-            <p className="prehub__feedback-eyebrow">OBJETO REVELADO</p>
-            <h1 id="key-found-title">Encontraste la llave</h1>
-            <p>
-              La explosión dejó algo entre las partículas. La llave reconoce tu camino y abre la entrada a Caraval.
-            </p>
-            <button type="button" onClick={onComplete}>
-              ENTRAR A CARAVAL
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

@@ -5,143 +5,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import LegendProgress from "@/components/progress/LegendProgress";
 import { useProgress } from "@/hooks/useProgress";
-
-const HOLD_DURATION = 1800;
-const SEAL_TRANSFORM_DURATION = 1500;
-const COIN_ENTRANCE_DURATION = 1300;
-
-function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(" ");
-  let line = "";
-  let currentY = y;
-
-  words.forEach((word) => {
-    const candidate = line ? `${line} ${word}` : word;
-    if (context.measureText(candidate).width > maxWidth && line) {
-      context.fillText(line, x, currentY);
-      line = word;
-      currentY += lineHeight;
-    } else {
-      line = candidate;
-    }
-  });
-
-  if (line) {
-    context.fillText(line, x, currentY);
-    currentY += lineHeight;
-  }
-
-  return currentY;
-}
-
-function createLetterTexture(showContent) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1536;
-  canvas.height = 2048;
-  const context = canvas.getContext("2d");
-  context.translate(canvas.width, 0);
-  context.scale(-1, 1);
-  const margin = 120;
-  const textWidth = canvas.width - margin * 2;
-
-  context.fillStyle = "#f4e9c7";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  const paperGradient = context.createRadialGradient(768, 950, 100, 768, 950, 1400);
-  paperGradient.addColorStop(0, "rgba(255, 252, 226, 0.28)");
-  paperGradient.addColorStop(1, "rgba(120, 74, 36, 0.18)");
-  context.fillStyle = paperGradient;
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  context.strokeStyle = "rgba(76, 39, 35, 0.35)";
-  context.lineWidth = 5;
-  context.strokeRect(70, 70, canvas.width - 140, canvas.height - 140);
-  context.strokeStyle = "rgba(76, 39, 35, 0.12)";
-  context.lineWidth = 2;
-  context.strokeRect(94, 94, canvas.width - 188, canvas.height - 188);
-
-  if (showContent) {
-    context.textAlign = "center";
-    context.fillStyle = "#4f2024";
-     context.font = "600 44px Georgia, serif";
-     context.fillText("DE LA OFICINA DEL MAESTRO DE CEREMONIAS", canvas.width / 2, 150);
-     context.font = "700 100px Georgia, serif";
-     context.fillText("Isla de los Sueños", canvas.width / 2, 255);
-
-    context.strokeStyle = "rgba(115, 45, 43, 0.45)";
-    context.lineWidth = 3;
-    context.beginPath();
-    context.moveTo(margin + 120, 310);
-    context.lineTo(canvas.width - margin - 120, 310);
-    context.stroke();
-
-    context.textAlign = "left";
-    context.fillStyle = "#3f2926";
-     context.font = "54px Georgia, serif";
-     let currentY = 390;
-     currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 72) + 30;
-     currentY = drawWrappedText(
-       context,
-       "Has sido invitado a cruzar las fronteras de Caraval, donde los deseos cobran vida y la ilusión se confunde con la realidad.",
-       margin,
-       currentY,
-       textWidth,
-       72,
-     ) + 30;
-
-    context.fillStyle = "#70252c";
-     context.font = "700 42px Georgia, serif";
-    context.fillText("Su Cometido:", margin, currentY);
-     currentY += 76;
-    context.fillStyle = "#3f2926";
-     context.font = "54px Georgia, serif";
-     currentY = drawWrappedText(
-       context,
-       "Recorre la feria y encuentra los objetos que guardan los fragmentos de Legend. Solo los correctos revelarán su verdadera identidad.",
-       margin,
-       currentY,
-       textWidth,
-       72,
-     ) + 30;
-     currentY = drawWrappedText(
-       context,
-       "La magia tiene un precio. No todo lo que brilla pertenece a Legend. Antes de comenzar, recuerda nuestra única advertencia:",
-       margin,
-       currentY,
-       textWidth,
-       72,
-    ) + 32;
-
-    context.textAlign = "center";
-    context.fillStyle = "#70252c";
-     context.font = "italic 700 54px Georgia, serif";
-    context.fillText('“Recuerda, es solo un juego...”', canvas.width / 2, currentY);
-    context.textAlign = "right";
-     context.font = "italic 46px Georgia, serif";
-    context.fillText("— Legend", canvas.width - margin, currentY + 70);
-
-    context.textAlign = "center";
-    context.fillStyle = "#70252c";
-     context.font = "700 34px Georgia, serif";
-    context.fillText("MANTENÉ PRESIONADO SOBRE EL SELLO PARA PINTARLO", canvas.width / 2, canvas.height - 120);
-  } else {
-    context.textAlign = "center";
-    context.fillStyle = "rgba(79, 32, 36, 0.5)";
-    context.font = "italic 42px Georgia, serif";
-    context.fillText("La tinta espera una mano.", canvas.width / 2, canvas.height / 2);
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.flipY = false;
-  texture.center.set(0.5, 0.5);
-  texture.rotation = 0;
-  texture.repeat.set(1, 1);
-  texture.offset.set(0, 0);
-  texture.anisotropy = 4;
-  texture.needsUpdate = true;
-  return texture;
-}
+import { COIN_ENTRANCE_DURATION, COIN_SAVE_DURATION, HOLD_DURATION, SEAL_TRANSFORM_DURATION } from "./constants";
+import { easeOutCubic, getWorldPointAtScreenPosition } from "./invitationAnimations";
+import { createLetterTexture } from "./invitationTexture";
 
 function RoseSymbol({ progress }) {
   return (
@@ -185,6 +51,8 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const coinEntranceRef = useRef({ active: false, startedAt: 0 });
   const transformationTimeoutRef = useRef(null);
   const transformationEndTimeoutRef = useRef(null);
+  const coinSaveTimeoutRef = useRef(null);
+  const coinSaveRequestRef = useRef(null);
   const drawingRef = useRef({ active: false, lastPoint: null });
   const penDragRef = useRef({ active: false });
   const [roseProgress, setRoseProgress] = useState(0);
@@ -196,6 +64,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const [isCoinEntering, setIsCoinEntering] = useState(false);
   const [isCoinVisible, setIsCoinVisible] = useState(false);
   const [isAurioRevealed, setIsAurioRevealed] = useState(false);
+  const [isCoinSaving, setIsCoinSaving] = useState(false);
   const [aurioMessage, setAurioMessage] = useState("");
   const { collectArtifact, collectedArtifacts } = useProgress();
 
@@ -410,6 +279,21 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     }
   }
 
+  function saveCoinAndEnterHub() {
+    if (isCoinSaving) return;
+
+    const progressFigure = document.querySelector(".legend-progress__figure");
+    const progressBounds = progressFigure?.getBoundingClientRect();
+    coinSaveRequestRef.current = {
+      targetX: progressBounds ? progressBounds.left + progressBounds.width / 2 : window.innerWidth - 80,
+      targetY: progressBounds ? progressBounds.top + progressBounds.height / 2 : 100,
+    };
+    setIsCoinSaving(true);
+    coinSaveTimeoutRef.current = window.setTimeout(() => {
+      onEnterHub();
+    }, COIN_SAVE_DURATION);
+  }
+
   useEffect(() => {
     const container = sceneContainerRef.current;
     if (!container) return undefined;
@@ -524,7 +408,10 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     );
 
     const sealGroup = new THREE.Group();
-    sealGroup.visible = hasPen && !isAurioRevealed;
+    // Keep the seal hidden as soon as the coin entrance starts. The scene is
+    // rebuilt when the entrance state changes, so initializing it as visible
+    // here can otherwise make it flash for a frame over the coin.
+    sealGroup.visible = hasPen && !isAurioRevealed && !isCoinEntering;
     sealGroup.position.set(0, -1.2, 0.8);
     scene.add(sealGroup);
     const sealMaterials = [];
@@ -588,6 +475,12 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     coinGroup.visible = isCoinVisible;
     scene.add(coinGroup);
     const coinMaterials = [];
+    const coinSaveAnimation = {
+      active: false,
+      startedAt: 0,
+      origin: new THREE.Vector3(),
+      target: new THREE.Vector3(),
+    };
 
     loader.load(
       "/models/main%20objects/pre-islamic_silver_coin_saa022n.glb",
@@ -681,6 +574,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       const transformProgress = transformationRef.current.active
         ? Math.min((performance.now() - transformationRef.current.startedAt) / SEAL_TRANSFORM_DURATION, 1)
         : 0;
+      sealGroup.visible = hasPen && !isAurioRevealed && !isCoinEntering;
       if (transformationRef.current.active) {
         sealGroup.rotation.y = elapsed * 4.5;
         sealGroup.rotation.z = elapsed * 1.2;
@@ -715,18 +609,42 @@ export default function InvitationCard({ onClose, onEnterHub }) {
         : isAurioRevealed
           ? 1
           : 0;
-      const coinEase = 1 - (1 - coinProgress) ** 3;
+      const coinEase = easeOutCubic(coinProgress);
+
+      if (coinSaveRequestRef.current && !coinSaveAnimation.active) {
+        const { targetX, targetY } = coinSaveRequestRef.current;
+
+        coinSaveAnimation.active = true;
+        coinSaveAnimation.startedAt = performance.now();
+        coinSaveAnimation.origin.copy(coinGroup.position);
+        coinSaveAnimation.target.copy(getWorldPointAtScreenPosition(camera, targetX, targetY));
+        coinSaveRequestRef.current = null;
+      }
+
+      const coinSaveProgress = coinSaveAnimation.active
+        ? Math.min((performance.now() - coinSaveAnimation.startedAt) / COIN_SAVE_DURATION, 1)
+        : 0;
+      const coinSaveEase = easeOutCubic(coinSaveProgress);
       coinGroup.visible = isCoinVisible;
-      coinGroup.scale.setScalar(0.08 + coinEase * 0.92);
-      coinGroup.rotation.x = coinEntranceRef.current.active
-        ? -coinProgress * Math.PI * 2
-        : Math.sin(elapsed * 0.55) * 0.08;
-      coinGroup.rotation.y = elapsed * (coinEntranceRef.current.active ? 2.4 : 1.2);
+      if (coinSaveAnimation.active) {
+        coinGroup.position.lerpVectors(coinSaveAnimation.origin, coinSaveAnimation.target, coinSaveEase);
+        coinGroup.scale.setScalar(Math.max(0.04, 1 - coinSaveEase * 0.96));
+        coinGroup.rotation.x += 0.12;
+        coinGroup.rotation.y += 0.16;
+      } else {
+        coinGroup.scale.setScalar(0.08 + coinEase * 0.92);
+        coinGroup.rotation.x = coinEntranceRef.current.active
+          ? -coinProgress * Math.PI * 2
+          : Math.sin(elapsed * 0.55) * 0.08;
+        coinGroup.rotation.y = elapsed * (coinEntranceRef.current.active ? 2.4 : 1.2);
+      }
       coinMaterials.forEach((material) => {
-        material.opacity = coinEase;
+        material.opacity = coinSaveAnimation.active ? coinEase * (1 - coinSaveEase) : coinEase;
         material.emissiveIntensity = 0.12 + Math.sin(coinProgress * Math.PI) * 0.45;
       });
-      coinGlow.intensity = Math.sin(coinProgress * Math.PI) * 26;
+      coinGlow.intensity = coinSaveAnimation.active
+        ? Math.sin(coinSaveEase * Math.PI) * 20
+        : Math.sin(coinProgress * Math.PI) * 26;
       if (coinEntranceRef.current.active) {
         burstParticles.position.set(0, 0, 0.8);
         burstParticles.visible = true;
@@ -774,6 +692,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     if (holdAnimationRef.current !== null) window.cancelAnimationFrame(holdAnimationRef.current);
     if (transformationTimeoutRef.current !== null) window.clearTimeout(transformationTimeoutRef.current);
     if (transformationEndTimeoutRef.current !== null) window.clearTimeout(transformationEndTimeoutRef.current);
+    if (coinSaveTimeoutRef.current !== null) window.clearTimeout(coinSaveTimeoutRef.current);
   }, []);
 
   return (
@@ -873,9 +792,10 @@ export default function InvitationCard({ onClose, onEnterHub }) {
             <button
               type="button"
               className="mt-5 border border-[#d9cdb8]/60 px-5 py-3 text-xs tracking-[0.16em] text-[#f0dfb2] transition-colors hover:border-[#f0dfb2] hover:bg-[#f0dfb2]/10"
-              onClick={onEnterHub}
+              onClick={saveCoinAndEnterHub}
+              disabled={isCoinSaving}
             >
-              CONTINUAR A CARAVAL
+              {isCoinSaving ? "GUARDANDO…" : "CONTINUAR A CARAVAL"}
             </button>
           </div>
         </section>

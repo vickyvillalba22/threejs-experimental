@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthPanel from "@/components/AuthPanel";
-import InvitationCard from "@/components/elements/InvitationCard";
+import InvitationCard from "@/components/elements/invitation/InvitationCard";
 import ExperienceIntroduction from "@/components/onboarding/ExperienceIntroduction";
 import ParticleTrail from "@/components/ParticleTrail";
 import { useProgress } from "@/hooks/useProgress";
