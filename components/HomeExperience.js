@@ -54,7 +54,12 @@ export default function HomeExperience({ devTarget = "" }) {
   }
 
   return (
-    <main className="relative min-h-svh overflow-hidden bg-app-background">
+    <main
+      className="relative min-h-svh overflow-hidden bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "linear-gradient(rgba(5, 5, 8, 0.38), rgba(5, 5, 8, 0.55)), url('/imgs/home-back-1.jpeg')",
+      }}
+    >
       <ParticleTrail onReveal={() => setIsEntranceRevealed(true)} />
       <div className="absolute right-6 top-6 z-[40] flex items-center gap-3 max-[600px]:left-6 max-[600px]:right-6 max-[600px]:justify-between">
         <span className="text-[12px] tracking-[0.12em]" aria-live="polite">
@@ -81,7 +86,7 @@ export default function HomeExperience({ devTarget = "" }) {
         </button>
       </div>
 
-      <section className="fixed inset-0 z-[30] flex flex-col items-center justify-center bg-app-background p-6 text-center gap-10">
+      <section className="fixed inset-0 z-[30] flex flex-col items-center justify-center bg-black/25 p-6 text-center gap-10">
         <p className="mb-[10px] text-[20px] tracking-[0.14em]">
           EXPERIENCIA TRANSMEDIA
         </p>

@@ -11,7 +11,7 @@ export default function TiendaExperience() {
   const [phase, setPhase] = useState("shop");
   const [secret, setSecret] = useState("");
   const [riddleAnswer, setRiddleAnswer] = useState("");
-  const [clockTime, setClockTime] = useState("");
+  const [clockHour, setClockHour] = useState(null);
   const [message, setMessage] = useState("");
   const { collectArtifact, collectedArtifacts } = useProgress();
 
@@ -51,10 +51,10 @@ export default function TiendaExperience() {
 
   function setClock() {
     const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const currentHour = now.getHours() % 12 || 12;
 
-    if (clockTime !== currentTime) {
-      setMessage("El reloj no coincide con la hora de este momento.");
+    if (clockHour !== currentHour) {
+      setMessage("La aguja de la hora no coincide con este momento.");
       return;
     }
 
@@ -66,7 +66,11 @@ export default function TiendaExperience() {
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-app-background text-app-text">
-      <TiendaScene onMaskClick={handleGlassClick} />
+      <TiendaScene
+        onMaskClick={handleGlassClick}
+        onClockHourChange={setClockHour}
+        showPocketWatch={phase === "clock"}
+      />
 
       {hasMask && phase === "shop" && (
         <section
@@ -135,17 +139,16 @@ export default function TiendaExperience() {
       )}
 
       {phase === "clock" && (
-        <section className="absolute inset-0 z-20 grid place-items-center bg-black/90 p-6 text-center backdrop-blur-sm">
-          <div className="w-full max-w-md">
+        <section className="pointer-events-none absolute inset-0 z-20 flex items-center bg-black/35 p-4 sm:p-8">
+          <div className="pointer-events-auto w-full max-w-md border border-white/15 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:w-1/2 sm:max-w-lg sm:p-8">
             <p className="text-xs tracking-[0.18em] text-app-subtle">EL RELOJ DE BOLSILLO</p>
             <p className="mt-5 font-app-display text-3xl text-app-text">Ponlo en hora.</p>
-            <input
-              type="time"
-              value={clockTime}
-              onChange={(event) => setClockTime(event.target.value)}
-              className="mt-7 border border-app-border bg-black px-5 py-3 text-center text-app-text"
-              autoFocus
-            />
+            <p className="mt-3 text-xs leading-relaxed text-app-subtle">
+              Arrastra las agujas hasta marcar la hora correcta. Los minutos no importan.
+            </p>
+            <p className="mt-5 text-sm text-app-subtle" aria-live="polite">
+              Hora seleccionada: {clockHour || "—"}
+            </p>
             <div>
               <button type="button" onClick={setClock} className="mt-5 border border-app-border px-5 py-3 text-xs tracking-[0.14em] hover:border-app-accent">
                 AJUSTAR EL RELOJ

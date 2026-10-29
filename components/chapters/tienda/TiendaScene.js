@@ -5,13 +5,24 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-export default function TiendaScene({ onMaskClick }) {
+export default function TiendaScene({ onMaskClick, onClockHourChange, showPocketWatch = false }) {
   const containerRef = useRef(null);
   const onMaskClickRef = useRef(onMaskClick);
+  const onClockHourChangeRef = useRef(onClockHourChange);
+  const showPocketWatchRef = useRef(showPocketWatch);
 
   useEffect(() => {
     onMaskClickRef.current = onMaskClick;
   }, [onMaskClick]);
+
+  useEffect(() => {
+    onClockHourChangeRef.current = onClockHourChange;
+  }, [onClockHourChange]);
+
+  useEffect(() => {
+    showPocketWatchRef.current = showPocketWatch;
+    window.dispatchEvent(new Event("resize"));
+  }, [showPocketWatch]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -197,6 +208,8 @@ export default function TiendaScene({ onMaskClick }) {
 
     let isDisposed = false;
     let maskObject = null;
+    let pocketWatchBounds = null;
+    let handsObject = null;
     const maskLoader = new GLTFLoader();
     maskLoader.load(
       "/models/main%20objects/venetian_mask_1.glb",
@@ -226,6 +239,8 @@ export default function TiendaScene({ onMaskClick }) {
           -maskCenter.y * gltf.scene.scale.y - 0.02,
           -maskCenter.z * gltf.scene.scale.z,
         );
+        // El GLB viene con la tapa hacia la cámara; invertimos el eje Y para
+        // mostrar la esfera y las agujas de frente.
         gltf.scene.rotation.set(0, Math.PI, 0);
         gltf.scene.renderOrder = 2;
         maskObject = gltf.scene;
@@ -253,6 +268,67 @@ export default function TiendaScene({ onMaskClick }) {
       undefined,
       (error) => {
         console.error("No se pudo cargar la máscara veneciana", error);
+      },
+    );
+
+    const pocketWatch = new THREE.Group();
+    pocketWatch.position.set(1.55, 0.05, -1.1);
+    // Corregimos la orientación del modelo completo respecto de la cámara.
+    // La combinación mantiene la esfera vertical y cambia la cara visible.
+    pocketWatch.rotation.set(0, 0, 0);
+    pocketWatch.visible = false;
+    scene.add(pocketWatch);
+
+    const pocketWatchLight = new THREE.PointLight("#fff1cf", 75, 4, 2);
+    pocketWatchLight.position.set(1.55, 0.8, 0.35);
+    pocketWatchLight.visible = false;
+    scene.add(pocketWatchLight);
+
+    const pocketWatchLoader = new GLTFLoader();
+    pocketWatchLoader.load(
+      "/models/main%20objects/pocket_watch.glb",
+      (gltf) => {
+        if (isDisposed) {
+          gltf.scene.traverse((object) => {
+            object.geometry?.dispose();
+            if (Array.isArray(object.material)) {
+              object.material.forEach((material) => material.dispose());
+            } else {
+              object.material?.dispose();
+            }
+          });
+          return;
+        }
+
+        const bounds = new THREE.Box3().setFromObject(gltf.scene);
+        const size = bounds.getSize(new THREE.Vector3());
+        const center = bounds.getCenter(new THREE.Vector3());
+        const largestDimension = Math.max(size.x, size.y, size.z);
+        const scale = 1.65 / largestDimension;
+
+        gltf.scene.scale.setScalar(scale);
+        gltf.scene.position.set(
+          -center.x * scale,
+          -center.y * scale,
+          -center.z * scale,
+        );
+        gltf.scene.rotation.set(0, 0, 0);
+        gltf.scene.traverse((object) => {
+          if (!object.isMesh) return;
+          object.castShadow = false;
+          object.receiveShadow = false;
+        });
+
+        pocketWatch.add(gltf.scene);
+        handsObject = gltf.scene.getObjectByName("hands");
+        pocketWatchBounds = new THREE.Box3().setFromObject(pocketWatch);
+        pocketWatch.visible = showPocketWatchRef.current;
+        pocketWatchLight.visible = showPocketWatchRef.current;
+        window.dispatchEvent(new Event("resize"));
+      },
+      undefined,
+      (error) => {
+        console.error("No se pudo cargar el reloj de bolsillo", error);
       },
     );
 
@@ -597,6 +673,7 @@ export default function TiendaScene({ onMaskClick }) {
     let isBottleLifted = false;
     let isBottleDragging = false;
     let isMaskPointerDown = false;
+    let isClockDragging = false;
     let bottlePointerStartY = 0;
     let bottleLiftStartY = 0;
     let bottleLiftStartTime = 0;
@@ -620,8 +697,34 @@ export default function TiendaScene({ onMaskClick }) {
       if (maskObject && maskObject.parent === bottle) scene.attach(maskObject);
     }
 
+    function updateClockFromPointer(event) {
+      if (!handsObject || !pocketWatchBounds) return;
+
+      updatePointer(event);
+      const watchCenter = pocketWatchBounds.getCenter(new THREE.Vector3());
+      const projectedCenter = watchCenter.project(camera);
+      const angle = Math.atan2(pointer.y - projectedCenter.y, pointer.x - projectedCenter.x);
+      // El eje Y de la pantalla crece hacia arriba, pero las horas avanzan
+      // en sentido horario: invertimos el ángulo para evitar el efecto espejo.
+      const normalizedAngle = (Math.PI / 2 - angle + Math.PI * 2) % (Math.PI * 2);
+      const hourIndex = Math.round((normalizedAngle / (Math.PI * 2)) * 12) % 12;
+      const hour = hourIndex || 12;
+
+      handsObject.rotation.z = Math.PI / 2 - angle;
+      onClockHourChangeRef.current?.(hour);
+    }
+
     function handlePointerDown(event) {
       updatePointer(event);
+
+      if (showPocketWatchRef.current) {
+        if (!handsObject || raycaster.intersectObject(pocketWatch, true).length === 0) return;
+        isClockDragging = true;
+        renderer.domElement.setPointerCapture(event.pointerId);
+        updateClockFromPointer(event);
+        event.preventDefault();
+        return;
+      }
 
       if (isBottleLifted) {
         isMaskPointerDown = Boolean(
@@ -638,6 +741,11 @@ export default function TiendaScene({ onMaskClick }) {
     }
 
     function handlePointerMove(event) {
+      if (isClockDragging) {
+        updateClockFromPointer(event);
+        return;
+      }
+
       if (!isBottleDragging || isBottleLifted) return;
 
       const bounds = renderer.domElement.getBoundingClientRect();
@@ -651,6 +759,14 @@ export default function TiendaScene({ onMaskClick }) {
     }
 
     function handlePointerUp(event) {
+      if (isClockDragging) {
+        isClockDragging = false;
+        if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+          renderer.domElement.releasePointerCapture(event.pointerId);
+        }
+        return;
+      }
+
       if (isBottleDragging) {
         isBottleDragging = false;
         if (!isBottleLifted) bottle.position.y = 0;
@@ -670,6 +786,7 @@ export default function TiendaScene({ onMaskClick }) {
     }
 
     function handlePointerCancel(event) {
+      isClockDragging = false;
       isBottleDragging = false;
       isMaskPointerDown = false;
       if (renderer.domElement.hasPointerCapture(event.pointerId)) {
@@ -689,6 +806,21 @@ export default function TiendaScene({ onMaskClick }) {
       bottle.updateMatrixWorld(true);
       const bottleBounds = new THREE.Box3().setFromObject(bottle);
       const bottleCenter = bottleBounds.getCenter(new THREE.Vector3());
+
+      if (showPocketWatchRef.current && pocketWatchBounds) {
+        const watchCenter = pocketWatchBounds.getCenter(new THREE.Vector3());
+        const watchHeight = pocketWatchBounds.getSize(new THREE.Vector3()).y;
+        const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+        const tanHalfFov = Math.tan(verticalFov / 2);
+        const distance = watchHeight / (2 * tanHalfFov * 0.62);
+        const targetX = watchCenter.x - Math.max(0.85, watchHeight * 0.7);
+
+        camera.position.set(targetX, watchCenter.y, watchCenter.z + distance);
+        camera.lookAt(targetX, watchCenter.y, watchCenter.z);
+        renderer.setSize(width, height, false);
+        return;
+      }
+
       const bottleHeight = bottleBounds.getSize(new THREE.Vector3()).y;
       const verticalFov = THREE.MathUtils.degToRad(camera.fov);
       // Dejamos más aire alrededor del frasco para conservar una escala
@@ -743,6 +875,8 @@ export default function TiendaScene({ onMaskClick }) {
       beamParticles.rotation.y = performance.now() * 0.00008;
       updateMagicParticles(time * 0.001);
       updateBottleFade(time);
+      pocketWatch.visible = showPocketWatchRef.current;
+      pocketWatchLight.visible = showPocketWatchRef.current;
       shelfPieces.forEach(({ mesh, baseY, phase }) => {
         mesh.position.y = baseY + 0.05 + Math.sin(performance.now() * 0.0011 + phase) * 0.03;
       });
