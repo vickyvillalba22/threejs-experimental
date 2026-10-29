@@ -2,14 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-export default function TiendaScene({ onGlassClick }) {
+export default function TiendaScene({ onMaskClick }) {
   const containerRef = useRef(null);
-  const onGlassClickRef = useRef(onGlassClick);
+  const onMaskClickRef = useRef(onMaskClick);
 
   useEffect(() => {
-    onGlassClickRef.current = onGlassClick;
-  }, [onGlassClick]);
+    onMaskClickRef.current = onMaskClick;
+  }, [onMaskClick]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -23,6 +25,7 @@ export default function TiendaScene({ onGlassClick }) {
     camera.position.set(0, 0, 7);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.sortObjects = true;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -32,6 +35,14 @@ export default function TiendaScene({ onGlassClick }) {
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
     container.appendChild(renderer.domElement);
+
+    const environmentGenerator = new THREE.PMREMGenerator(renderer);
+    const environmentTexture = environmentGenerator.fromScene(
+      new RoomEnvironment(),
+      0.04,
+    ).texture;
+    scene.environment = environmentTexture;
+    environmentGenerator.dispose();
 
     const ambientLight = new THREE.AmbientLight("#222222", 0.12);
 
@@ -157,11 +168,17 @@ export default function TiendaScene({ onGlassClick }) {
     const innerLight = new THREE.PointLight("#ffaa00", 140, 6, 2);
     innerLight.position.set(0, 1, -0.8);
 
+    // Relleno frontal suave para conservar el detalle de la máscara a través
+    // del cristal, sin competir con el haz principal.
+    const maskFillLight = new THREE.PointLight("#fff1d2", 55, 3.5, 2);
+    maskFillLight.position.set(0, 0.1, 0.35);
+
     const innerGlow = new THREE.Mesh(
       new THREE.SphereGeometry(0.06, 16, 16),
       new THREE.MeshBasicMaterial({ color: "#ffaa00", toneMapped: false }),
     );
     innerGlow.position.copy(innerLight.position);
+    innerGlow.visible = false;
 
     scene.add(
       ambientLight,
@@ -170,12 +187,74 @@ export default function TiendaScene({ onGlassClick }) {
       inspectionBeam,
       innerLight,
       innerGlow,
+      maskFillLight,
     );
 
     const bottle = new THREE.Group();
     bottle.position.set(0, 0, -0.8);
     bottle.scale.setScalar(0.68);
     scene.add(bottle);
+
+    let isDisposed = false;
+    let maskObject = null;
+    const maskLoader = new GLTFLoader();
+    maskLoader.load(
+      "/models/main%20objects/venetian_mask_1.glb",
+      (gltf) => {
+        if (isDisposed) {
+          gltf.scene.traverse((object) => {
+            object.geometry?.dispose();
+            if (Array.isArray(object.material)) {
+              object.material.forEach((material) => material.dispose());
+            } else {
+              object.material?.dispose();
+            }
+          });
+          return;
+        }
+
+        const maskBounds = new THREE.Box3().setFromObject(gltf.scene);
+        const maskSize = maskBounds.getSize(new THREE.Vector3());
+        const maskCenter = maskBounds.getCenter(new THREE.Vector3());
+        const largestDimension = Math.max(maskSize.x, maskSize.y, maskSize.z);
+
+        // Normalizamos el modelo para que quede dentro del cuerpo del frasco,
+        // independientemente de las unidades utilizadas por el archivo GLB.
+        gltf.scene.scale.setScalar(0.92 / largestDimension);
+        gltf.scene.position.set(
+          -maskCenter.x * gltf.scene.scale.x,
+          -maskCenter.y * gltf.scene.scale.y - 0.02,
+          -maskCenter.z * gltf.scene.scale.z,
+        );
+        gltf.scene.rotation.set(0, Math.PI, 0);
+        gltf.scene.renderOrder = 2;
+        maskObject = gltf.scene;
+        if (isBottleLifted) scene.attach(maskObject);
+
+        gltf.scene.traverse((object) => {
+          if (!object.isMesh) return;
+          object.castShadow = false;
+          object.receiveShadow = false;
+          object.renderOrder = 2;
+
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          materials.forEach((material) => {
+            if (!material) return;
+            material.depthTest = true;
+            material.depthWrite = true;
+            material.needsUpdate = true;
+          });
+        });
+
+        bottle.add(gltf.scene);
+      },
+      undefined,
+      (error) => {
+        console.error("No se pudo cargar la máscara veneciana", error);
+      },
+    );
 
     // Capa visual de niebla baja: la FogExp2 aporta profundidad, mientras
     // esta capa hace visible el banco espectral sobre el suelo invisible.
@@ -294,11 +373,9 @@ export default function TiendaScene({ onGlassClick }) {
     const pedestal = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.62, 0.72, pedestalHeight, 8)),
       new THREE.LineBasicMaterial({
-        color: "#d4a72c",
+        color: "#ffffff",
         transparent: true,
-        opacity: 0.25,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
+        opacity: 0.4,
       }),
     );
     pedestal.position.set(0, -0.75 - pedestalHeight / 2, -0.8);
@@ -462,19 +539,26 @@ export default function TiendaScene({ onGlassClick }) {
     ];
     const bodyGeometry = new THREE.LatheGeometry(bodyProfile, 48);
     const glassMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
-      roughness: 0.1,
-      transmission: 0.9,
-      thickness: 1.2,
+      color: new THREE.Color("#ffffff"),
+      roughness: 0.04,
+      transmission: 1,
+      thickness: 0.35,
+      ior: 1.45,
+      attenuationColor: new THREE.Color("#ffffff"),
+      attenuationDistance: Infinity,
+      envMapIntensity: 0.7,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.3,
+      depthWrite: false,
       side: THREE.DoubleSide,
     });
     const body = new THREE.Mesh(bodyGeometry, glassMaterial);
+    body.renderOrder = 10;
     bottle.add(body);
 
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.1, 24, 24), glassMaterial);
     knob.position.y = 1.14;
+    knob.renderOrder = 10;
     bottle.add(knob);
 
     const particleCount = 90;
@@ -510,6 +594,89 @@ export default function TiendaScene({ onGlassClick }) {
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let animationFrame;
+    let isBottleLifted = false;
+    let isBottleDragging = false;
+    let isMaskPointerDown = false;
+    let bottlePointerStartY = 0;
+    let bottleLiftStartY = 0;
+    let bottleLiftStartTime = 0;
+
+    function updatePointer(event) {
+      const bounds = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+      pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+    }
+
+    function startBottleLift() {
+      if (isBottleLifted) return;
+      isBottleLifted = true;
+      isBottleDragging = false;
+      bottleLiftStartY = bottle.position.y;
+      bottleLiftStartTime = performance.now();
+
+      // Sacamos la máscara del frasco conservando su posición en pantalla.
+      // Así queda disponible para el clic cuando el vidrio desaparece.
+      if (maskObject && maskObject.parent === bottle) scene.attach(maskObject);
+    }
+
+    function handlePointerDown(event) {
+      updatePointer(event);
+
+      if (isBottleLifted) {
+        isMaskPointerDown = Boolean(
+          maskObject && raycaster.intersectObject(maskObject, true).length > 0,
+        );
+        return;
+      }
+
+      if (raycaster.intersectObjects(clickableObjects, false).length === 0) return;
+      isBottleDragging = true;
+      bottlePointerStartY = event.clientY;
+      renderer.domElement.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    }
+
+    function handlePointerMove(event) {
+      if (!isBottleDragging || isBottleLifted) return;
+
+      const bounds = renderer.domElement.getBoundingClientRect();
+      const upwardMovement = (bottlePointerStartY - event.clientY) / bounds.height;
+      if (upwardMovement > 0 && maskObject && maskObject.parent === bottle) {
+        scene.attach(maskObject);
+      }
+      bottle.position.y = THREE.MathUtils.clamp(upwardMovement * 3, 0, 0.9);
+
+      if (upwardMovement > 0.12) startBottleLift();
+    }
+
+    function handlePointerUp(event) {
+      if (isBottleDragging) {
+        isBottleDragging = false;
+        if (!isBottleLifted) bottle.position.y = 0;
+        if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+          renderer.domElement.releasePointerCapture(event.pointerId);
+        }
+        return;
+      }
+
+      if (isBottleLifted && isMaskPointerDown) {
+        updatePointer(event);
+        if (maskObject && raycaster.intersectObject(maskObject, true).length > 0) {
+          onMaskClickRef.current?.();
+        }
+      }
+      isMaskPointerDown = false;
+    }
+
+    function handlePointerCancel(event) {
+      isBottleDragging = false;
+      isMaskPointerDown = false;
+      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
+      if (!isBottleLifted) bottle.position.y = 0;
+    }
 
     function resize() {
       const width = Math.max(container.clientWidth, 1);
@@ -547,24 +714,35 @@ export default function TiendaScene({ onGlassClick }) {
       renderer.setSize(width, height, false);
     }
 
-    function handleClick(event) {
-      const bounds = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-      pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
+    function updateBottleFade(time) {
+      if (bottleLiftStartTime <= 0) return;
 
-      if (raycaster.intersectObjects(clickableObjects, false).length > 0) {
-        onGlassClickRef.current?.();
+      const progress = THREE.MathUtils.clamp(
+        (time - bottleLiftStartTime) / 1100,
+        0,
+        1,
+      );
+      bottle.position.y = bottleLiftStartY + progress * 0.45;
+      glassMaterial.opacity = 0.3 * (1 - progress);
+      particles.material.opacity = 0.9 * (1 - progress);
+
+      if (progress >= 1) {
+        body.visible = false;
+        knob.visible = false;
+        particles.visible = false;
+        bottleLiftStartTime = -1;
       }
     }
 
     function animate() {
       animationFrame = window.requestAnimationFrame(animate);
-      bottle.rotation.y = Math.sin(performance.now() * 0.0007) * 0.08;
+      const time = performance.now();
+      if (!isBottleLifted) bottle.rotation.y = Math.sin(time * 0.0007) * 0.08;
       groundFog.material.uniforms.uTime.value = performance.now() * 0.001;
       inspectionBeam.material.uniforms.uTime.value = performance.now() * 0.001;
       beamParticles.rotation.y = performance.now() * 0.00008;
-      updateMagicParticles(performance.now() * 0.001);
+      updateMagicParticles(time * 0.001);
+      updateBottleFade(time);
       shelfPieces.forEach(({ mesh, baseY, phase }) => {
         mesh.position.y = baseY + 0.05 + Math.sin(performance.now() * 0.0011 + phase) * 0.03;
       });
@@ -582,21 +760,29 @@ export default function TiendaScene({ onGlassClick }) {
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
     window.addEventListener("resize", resize);
-    renderer.domElement.addEventListener("click", handleClick);
+    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+    renderer.domElement.addEventListener("pointermove", handlePointerMove);
+    renderer.domElement.addEventListener("pointerup", handlePointerUp);
+    renderer.domElement.addEventListener("pointercancel", handlePointerCancel);
     resize();
     animate();
 
     return () => {
+      isDisposed = true;
       window.cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
       window.removeEventListener("resize", resize);
-      renderer.domElement.removeEventListener("click", handleClick);
+      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
+      renderer.domElement.removeEventListener("pointerup", handlePointerUp);
+      renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
       scene.traverse((object) => {
         if (!object.geometry) return;
         object.geometry?.dispose();
         object.material?.dispose();
       });
       renderer.dispose();
+      environmentTexture.dispose();
       renderer.domElement.remove();
     };
   }, []);

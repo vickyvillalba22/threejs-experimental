@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@/hooks/useProgress";
+import CarruselScene from "@/components/chapters/carrusel/CarruselScene";
 
 const CARD_VALUES = [1, 2, 3, 4, 5, 6, 7];
-const SEARCH_DURATION = 30;
-
 function shuffle(values) {
   return [...values].sort(() => Math.random() - 0.5);
 }
@@ -15,29 +14,11 @@ export default function CarruselExperience() {
   const router = useRouter();
   const { collectArtifact } = useProgress();
   const [foundCards, setFoundCards] = useState([]);
-  const [secondsLeft, setSecondsLeft] = useState(SEARCH_DURATION);
   const [phase, setPhase] = useState("search");
   const [nextValue, setNextValue] = useState(1);
   const [riddleAnswer, setRiddleAnswer] = useState("");
   const [message, setMessage] = useState("");
   const orderedCards = useMemo(() => shuffle(CARD_VALUES), []);
-
-  useEffect(() => {
-    if (phase !== "search") return undefined;
-
-    const timer = window.setInterval(() => {
-      setSecondsLeft((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer);
-          router.push("/archivo/final-b");
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [phase, router]);
 
   function findCard(value) {
     if (foundCards.includes(value)) return;
@@ -80,14 +61,14 @@ export default function CarruselExperience() {
 
   return (
     <main className="carousel-experience">
-      <div className="carousel-experience__atmosphere" aria-hidden="true" />
+      <CarruselScene />
       <section className="carousel-experience__panel">
         {phase === "search" && (
           <>
             <p className="carousel-experience__eyebrow">EL CARRUSEL MÁGICO</p>
             <h1>Encuentra las siete cartas</h1>
             <p className="carousel-experience__copy">
-              Las cartas están escondidas en el movimiento del carrusel. Tienes {secondsLeft} segundos.
+              Las cartas están escondidas en el movimiento del carrusel. Explora la escena con calma.
             </p>
             <div className="carousel-cards" aria-label="Cartas escondidas">
               {CARD_VALUES.map((value) => (

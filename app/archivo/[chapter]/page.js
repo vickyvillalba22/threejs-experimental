@@ -79,7 +79,7 @@ export default function EscenaDinamica({ params }) {
           </div>
         )}
         {chapterId === 'hub' && isRoseRevealed && (
-          <div className="pointer-events-none fixed inset-0 z-10 flex items-center justify-center p-6">
+          <div className="pointer-events-none fixed inset-x-0 bottom-6 z-10 flex justify-center p-6 sm:bottom-8">
             <section
               className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/25 bg-black/65 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-sm sm:p-6"
               aria-label="Rosa descubierta"

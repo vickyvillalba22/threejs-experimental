@@ -257,6 +257,7 @@ export default function HubPortal3D({ onAwaken }) {
   const onAwakenRef = useRef(onAwaken);
   const chargeTargetRef = useRef(0);
   const burstStartRef = useRef(null);
+  const holdStartRef = useRef(null);
   const [isCharging, setIsCharging] = useState(false);
   const [isAwakened, setIsAwakened] = useState(false);
 
@@ -267,6 +268,7 @@ export default function HubPortal3D({ onAwaken }) {
   function completeAwakening() {
     if (awakenedRef.current) return;
     awakenedRef.current = true;
+    holdStartRef.current = null;
     chargeTargetRef.current = 1;
     burstStartRef.current = performance.now();
     setIsCharging(false);
@@ -284,6 +286,7 @@ export default function HubPortal3D({ onAwaken }) {
     }
 
     window.clearTimeout(holdTimerRef.current);
+    holdStartRef.current = performance.now();
     chargeTargetRef.current = 1;
     setIsCharging(true);
     holdTimerRef.current = window.setTimeout(completeAwakening, AWAKENING_DURATION);
@@ -296,6 +299,7 @@ export default function HubPortal3D({ onAwaken }) {
     }
 
     window.clearTimeout(holdTimerRef.current);
+    holdStartRef.current = null;
     chargeTargetRef.current = 0;
     setIsCharging(false);
   }
@@ -368,6 +372,12 @@ export default function HubPortal3D({ onAwaken }) {
     let animationFrame;
     let disposed = false;
     let model = null;
+    let rose = null;
+    let roseScale = 0;
+    let roseRevealMin = 0;
+    let roseRevealMax = 1;
+    let roseMaterials = [];
+    const roseRevealUniform = { value: 0 };
     let edgeMaterials = [];
     let particleTime = 0;
     let chargeProgress = 0;
@@ -442,6 +452,93 @@ export default function HubPortal3D({ onAwaken }) {
       },
     );
 
+    loader.load(
+      "/models/main objects/pride_rose.glb",
+      (gltf) => {
+        if (disposed) return;
+
+        rose = gltf.scene;
+        const bounds = new THREE.Box3().setFromObject(rose);
+        const center = bounds.getCenter(new THREE.Vector3());
+        const size = bounds.getSize(new THREE.Vector3());
+        const desiredHeight = 1.05;
+
+        rose.position.sub(center);
+        roseScale = desiredHeight / Math.max(size.y, 0.001);
+        rose.scale.setScalar(roseScale);
+        rose.position.y = -0.08;
+        rose.position.z = 0.72;
+        roseRevealMin = (bounds.min.y - center.y) * roseScale + rose.position.y;
+        roseRevealMax = (bounds.max.y - center.y) * roseScale + rose.position.y;
+
+        roseMaterials = [];
+        rose.traverse((object) => {
+          if (!object.isMesh) return;
+
+          object.castShadow = false;
+          object.receiveShadow = false;
+          object.renderOrder = 4;
+          object.material = Array.isArray(object.material)
+            ? object.material.map((material) => material.clone())
+            : object.material.clone();
+
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          materials.forEach((material) => {
+            material.transparent = true;
+            material.opacity = 1;
+            material.depthWrite = false;
+            material.needsUpdate = true;
+            material.onBeforeCompile = (shader) => {
+              shader.uniforms.uRoseReveal = roseRevealUniform;
+              shader.uniforms.uRoseRevealMin = { value: roseRevealMin };
+              shader.uniforms.uRoseRevealMax = { value: roseRevealMax };
+
+              shader.vertexShader = `
+                varying vec3 vRoseWorldPosition;
+                ${shader.vertexShader}
+              `.replace(
+                "#include <begin_vertex>",
+                `#include <begin_vertex>
+                vRoseWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;`,
+              );
+              shader.fragmentShader = `
+                uniform float uRoseReveal;
+                uniform float uRoseRevealMin;
+                uniform float uRoseRevealMax;
+                varying vec3 vRoseWorldPosition;
+                ${shader.fragmentShader}
+              `.replace(
+                "#include <opaque_fragment>",
+                `
+                float roseHeight = clamp(
+                  (vRoseWorldPosition.y - uRoseRevealMin) / max(uRoseRevealMax - uRoseRevealMin, 0.001),
+                  0.0,
+                  1.0
+                );
+                float roseNoise = fract(sin(dot(vRoseWorldPosition * 8.0, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+                float roseFormation = roseHeight + (roseNoise - 0.5) * 0.18;
+                float roseThreshold = 1.12 - uRoseReveal * 1.12;
+                float roseVisibility = smoothstep(roseThreshold - 0.08, roseThreshold + 0.08, roseFormation);
+                float roseEdge = 1.0 - smoothstep(0.0, 0.13, abs(roseFormation - roseThreshold));
+                diffuseColor.a *= roseVisibility;
+                outgoingLight += vec3(1.0, 0.22, 0.32) * roseEdge * roseVisibility * 0.85;
+                #include <opaque_fragment>`,
+              );
+            };
+            roseMaterials.push(material);
+          });
+        });
+
+        portal.add(rose);
+      },
+      undefined,
+      (error) => {
+        console.error("No se pudo cargar la rosa del hub", error);
+      },
+    );
+
     function resize() {
       const height = Math.max(container.clientHeight, 1);
       const width = Math.max(container.clientWidth, 1);
@@ -457,12 +554,27 @@ export default function HubPortal3D({ onAwaken }) {
       animationFrame = window.requestAnimationFrame(animate);
       particleTime += 0.008;
       chargeProgress += (chargeTargetRef.current - chargeProgress) * 0.075;
+      const holdProgress = awakenedRef.current
+        ? 1
+        : holdStartRef.current === null
+          ? 0
+          : Math.min((performance.now() - holdStartRef.current) / AWAKENING_DURATION, 1);
       const burstProgress = burstStartRef.current === null
         ? 0
         : Math.min((performance.now() - burstStartRef.current) / 820, 1);
+      // La rosa reserva su último tramo para sincronizarlo con el destello
+      // que comienza cuando el arco termina de despertar.
+      const roseProgress = awakenedRef.current
+        ? 0.68 + Math.min(burstProgress / 0.24, 1) * 0.32
+        : Math.pow(holdProgress, 2.4) * 0.68;
 
       if (model) {
         model.rotation.y = Math.sin(particleTime * 0.7) * 0.035;
+      }
+
+      if (rose) {
+        roseRevealUniform.value = roseProgress;
+        rose.rotation.y = Math.sin(particleTime * 0.7) * 0.035;
       }
 
       farParticles.material.uniforms.uTime.value = particleTime;
@@ -493,6 +605,7 @@ export default function HubPortal3D({ onAwaken }) {
       disposed = true;
       window.cancelAnimationFrame(animationFrame);
       window.clearTimeout(holdTimerRef.current);
+      holdStartRef.current = null;
       resizeObserver.disconnect();
       renderer.dispose();
 

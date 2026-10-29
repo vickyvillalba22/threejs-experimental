@@ -66,7 +66,7 @@ export default function TiendaExperience() {
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-app-background text-app-text">
-      <TiendaScene onGlassClick={handleGlassClick} />
+      <TiendaScene onMaskClick={handleGlassClick} />
 
       {hasMask && phase === "shop" && (
         <section

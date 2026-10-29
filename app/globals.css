@@ -268,7 +268,8 @@
 }
 
 .experience-introduction__fragment {
-  fill: none;
+  fill: currentColor;
+  fill-opacity: 0.08;
   stroke: rgba(242, 242, 242, 0.92);
   stroke-width: 1.3;
   stroke-linecap: round;
@@ -448,25 +449,29 @@
   color: var(--color-text);
 }
 
-.carousel-experience__atmosphere {
-  position: absolute;
-  inset: -20%;
-  background:
-    radial-gradient(circle at 50% 38%, rgba(171, 179, 200, 0.16), transparent 22%),
-    repeating-conic-gradient(from 20deg at 50% 50%, rgba(255, 255, 255, 0.025) 0deg 8deg, transparent 8deg 28deg);
-  animation: carousel-rotate 26s linear infinite;
-}
-
 .carousel-experience__panel {
-  position: relative;
-  z-index: 1;
-  width: min(100% - 2rem, 42rem);
-  padding: 2rem;
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  z-index: 10;
+  transform: translateY(-50%);
+  width: min(calc(100% - 2rem), 24rem);
+  padding: 1rem 1.4rem;
   border: 1px solid rgba(237, 237, 237, 0.22);
-  background: rgba(5, 5, 8, 0.76);
+  background: rgba(5, 5, 8, 0.52);
   box-shadow: 0 0 60px rgba(255, 255, 255, 0.08);
   text-align: center;
   backdrop-filter: blur(12px);
+}
+
+@media (max-width: 48rem) {
+  .carousel-experience__panel {
+    left: 1rem;
+    top: auto;
+    bottom: 1rem;
+    transform: none;
+    width: calc(100% - 2rem);
+  }
 }
 
 .carousel-experience__eyebrow {
@@ -567,10 +572,6 @@
 
 .carousel-experience__submit:hover {
   border-color: var(--color-text);
-}
-
-@keyframes carousel-rotate {
-  to { transform: rotate(360deg); }
 }
 
 .final-a-experience {
@@ -722,6 +723,8 @@
 }
 
 .legend-progress__fragment {
+  fill: currentColor;
+  fill-opacity: 0.08;
   stroke-width: 1.35;
   stroke-dasharray: 1;
   animation: legend-fragment-reveal 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;

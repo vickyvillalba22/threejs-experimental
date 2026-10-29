@@ -2,26 +2,14 @@
 
 import { useMemo } from "react";
 import { LEGEND_FRAGMENT_COUNT, useProgress } from "@/hooks/useProgress";
-
-// The silhouette is intentionally divided into eight independent wireframe
-// fragments. Scene-specific objects decide which status each fragment receives.
-const FRAGMENT_PATHS = [
-  "M44 18 L66 18 L78 30 L70 44 L40 44 L32 30 Z M44 18 L40 8 L66 8 L66 18",
-  "M40 48 L72 48 L78 72 L70 92 L42 92 L34 72 Z",
-  "M42 52 L70 52 M40 62 L72 62 M38 72 L74 72 M42 82 L70 82",
-  "M34 50 L18 62 L8 92 L20 96 L38 72",
-  "M72 50 L88 62 L98 92 L86 96 L68 72",
-  "M42 92 L34 122 L38 160 L52 160 L56 126",
-  "M64 92 L72 122 L68 160 L54 160 L50 126",
-  "M48 56 L56 64 L64 56 M48 108 L56 116 L64 108 M56 116 L56 150",
-];
+import { LEGEND_FRAGMENT_PATHS } from "@/components/progress/legendPaths";
 
 function Wireframe({ status, index }) {
   const isVisible = Boolean(status);
 
   return (
     <path
-      d={FRAGMENT_PATHS[index]}
+      d={LEGEND_FRAGMENT_PATHS[index]}
       className={isVisible ? "legend-progress__fragment" : "legend-progress__guide"}
       style={
         isVisible
@@ -60,7 +48,7 @@ export default function LegendProgress() {
         role="img"
         aria-label={`${fragments.length} de ${LEGEND_FRAGMENT_COUNT} fragmentos revelados`}
       >
-        {FRAGMENT_PATHS.map((_, index) => (
+        {LEGEND_FRAGMENT_PATHS.map((_, index) => (
           <Wireframe
             key={`guide-${index}`}
             index={index}
