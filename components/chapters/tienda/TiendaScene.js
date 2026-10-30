@@ -209,7 +209,9 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
     let isDisposed = false;
     let maskObject = null;
     let pocketWatchBounds = null;
-    let handsObject = null;
+    let clockHandsCenter = null;
+    let hourHand = null;
+    let minuteHand = null;
     const maskLoader = new GLTFLoader();
     maskLoader.load(
       "/models/main%20objects/venetian_mask_1.glb",
@@ -286,7 +288,7 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
 
     const pocketWatchLoader = new GLTFLoader();
     pocketWatchLoader.load(
-      "/models/main%20objects/pocket_watch.glb",
+      "/models/main%20objects/gear_clock.glb",
       (gltf) => {
         if (isDisposed) {
           gltf.scene.traverse((object) => {
@@ -300,11 +302,14 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
           return;
         }
 
+        // Normalizamos el nuevo reloj para conservar el encuadre del modelo anterior.
+        gltf.scene.updateMatrixWorld(true);
         const bounds = new THREE.Box3().setFromObject(gltf.scene);
         const size = bounds.getSize(new THREE.Vector3());
         const center = bounds.getCenter(new THREE.Vector3());
         const largestDimension = Math.max(size.x, size.y, size.z);
-        const scale = 1.65 / largestDimension;
+        const targetSize = 1.65;
+        const scale = targetSize / Math.max(largestDimension, 0.001);
 
         gltf.scene.scale.setScalar(scale);
         gltf.scene.position.set(
@@ -312,7 +317,8 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
           -center.y * scale,
           -center.z * scale,
         );
-        gltf.scene.rotation.set(0, 0, 0);
+        // Giramos el modelo 270° sobre su eje vertical.
+        gltf.scene.rotation.set(0, Math.PI * 1.5, 0);
         gltf.scene.traverse((object) => {
           if (!object.isMesh) return;
           object.castShadow = false;
@@ -320,7 +326,16 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
         });
 
         pocketWatch.add(gltf.scene);
-        handsObject = gltf.scene.getObjectByName("hands");
+        hourHand = gltf.scene.getObjectByName("Hour Hand");
+        minuteHand = gltf.scene.getObjectByName("Minute Hand");
+        pocketWatch.updateMatrixWorld(true);
+        if (hourHand && minuteHand) {
+          const hourHandCenter = new THREE.Vector3();
+          const minuteHandCenter = new THREE.Vector3();
+          hourHand.getWorldPosition(hourHandCenter);
+          minuteHand.getWorldPosition(minuteHandCenter);
+          clockHandsCenter = hourHandCenter.add(minuteHandCenter).multiplyScalar(0.5);
+        }
         pocketWatchBounds = new THREE.Box3().setFromObject(pocketWatch);
         pocketWatch.visible = showPocketWatchRef.current;
         pocketWatchLight.visible = showPocketWatchRef.current;
@@ -698,10 +713,10 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
     }
 
     function updateClockFromPointer(event) {
-      if (!handsObject || !pocketWatchBounds) return;
+      if (!hourHand || !minuteHand || !pocketWatchBounds) return;
 
       updatePointer(event);
-      const watchCenter = pocketWatchBounds.getCenter(new THREE.Vector3());
+      const watchCenter = clockHandsCenter?.clone() || pocketWatchBounds.getCenter(new THREE.Vector3());
       const projectedCenter = watchCenter.project(camera);
       const angle = Math.atan2(pointer.y - projectedCenter.y, pointer.x - projectedCenter.x);
       // El eje Y de la pantalla crece hacia arriba, pero las horas avanzan
@@ -709,16 +724,40 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       const normalizedAngle = (Math.PI / 2 - angle + Math.PI * 2) % (Math.PI * 2);
       const hourIndex = Math.round((normalizedAngle / (Math.PI * 2)) * 12) % 12;
       const hour = hourIndex || 12;
+      const pointerRotation = Math.PI / 2 - angle;
+      const hourRotation = hourIndex * (Math.PI * 2 / 12);
 
-      handsObject.rotation.z = Math.PI / 2 - angle;
+      // La minutera sigue el puntero con precisión; la horaria se ajusta a la
+      // hora más cercana porque los minutos no forman parte de la respuesta.
+      // Las agujas del modelo usan ejes locales distintos: la horaria gira
+      // sobre Z y la minutera, que está modelada en el plano XZ, sobre Y.
+      minuteHand.rotation.y = pointerRotation;
+      hourHand.rotation.z = hourRotation;
       onClockHourChangeRef.current?.(hour);
+    }
+
+    function isPointerOverClock() {
+      if (raycaster.intersectObject(pocketWatch, true).length > 0) return true;
+      if (!pocketWatchBounds) return false;
+
+      const center = clockHandsCenter?.clone() || pocketWatchBounds.getCenter(new THREE.Vector3());
+      const projectedCenter = center.project(camera);
+      const halfHeight = pocketWatchBounds.getSize(new THREE.Vector3()).y / 2;
+      const projectedTop = center.clone().add(new THREE.Vector3(0, halfHeight, 0)).project(camera);
+      const radius = Math.abs(projectedTop.y - projectedCenter.y) * 1.15;
+      const distance = Math.hypot(
+        pointer.x - projectedCenter.x,
+        pointer.y - projectedCenter.y,
+      );
+
+      return distance <= radius;
     }
 
     function handlePointerDown(event) {
       updatePointer(event);
 
       if (showPocketWatchRef.current) {
-        if (!handsObject || raycaster.intersectObject(pocketWatch, true).length === 0) return;
+        if (!hourHand || !minuteHand || !isPointerOverClock()) return;
         isClockDragging = true;
         renderer.domElement.setPointerCapture(event.pointerId);
         updateClockFromPointer(event);
@@ -808,7 +847,7 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       const bottleCenter = bottleBounds.getCenter(new THREE.Vector3());
 
       if (showPocketWatchRef.current && pocketWatchBounds) {
-        const watchCenter = pocketWatchBounds.getCenter(new THREE.Vector3());
+        const watchCenter = clockHandsCenter || pocketWatchBounds.getCenter(new THREE.Vector3());
         const watchHeight = pocketWatchBounds.getSize(new THREE.Vector3()).y;
         const verticalFov = THREE.MathUtils.degToRad(camera.fov);
         const tanHalfFov = Math.tan(verticalFov / 2);
@@ -866,28 +905,52 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       }
     }
 
+    function updateSceneVisibility() {
+      const isClockPhase = showPocketWatchRef.current;
+      const isShopPhase = !isClockPhase;
+
+      bottle.visible = isShopPhase;
+      shelves.forEach((shelf) => {
+        shelf.visible = isShopPhase;
+      });
+      pedestal.visible = isShopPhase;
+      groundFog.visible = isShopPhase;
+      inspectionBeam.visible = isShopPhase;
+      beamParticles.visible = isShopPhase;
+      magicParticles.visible = isShopPhase;
+      inspectionLight.visible = isShopPhase;
+      innerLight.visible = isShopPhase;
+      maskFillLight.visible = isShopPhase;
+      if (maskObject) maskObject.visible = isShopPhase;
+
+      pocketWatch.visible = isClockPhase;
+      pocketWatchLight.visible = isClockPhase;
+    }
+
     function animate() {
       animationFrame = window.requestAnimationFrame(animate);
       const time = performance.now();
-      if (!isBottleLifted) bottle.rotation.y = Math.sin(time * 0.0007) * 0.08;
-      groundFog.material.uniforms.uTime.value = performance.now() * 0.001;
-      inspectionBeam.material.uniforms.uTime.value = performance.now() * 0.001;
-      beamParticles.rotation.y = performance.now() * 0.00008;
-      updateMagicParticles(time * 0.001);
-      updateBottleFade(time);
-      pocketWatch.visible = showPocketWatchRef.current;
-      pocketWatchLight.visible = showPocketWatchRef.current;
-      shelfPieces.forEach(({ mesh, baseY, phase }) => {
-        mesh.position.y = baseY + 0.05 + Math.sin(performance.now() * 0.0011 + phase) * 0.03;
-      });
-      const particlePositionAttribute = particles.geometry.attributes.position;
-      for (let i = 0; i < particleCount; i += 1) {
-        particlePositionAttribute.setY(
-          i,
-          particleBaseY[i] + Math.sin(performance.now() * 0.0008 + particlePhases[i]) * 0.06,
-        );
+      const isClockPhase = showPocketWatchRef.current;
+      updateSceneVisibility();
+      if (!isClockPhase) {
+        if (!isBottleLifted) bottle.rotation.y = Math.sin(time * 0.0007) * 0.08;
+        groundFog.material.uniforms.uTime.value = time * 0.001;
+        inspectionBeam.material.uniforms.uTime.value = time * 0.001;
+        beamParticles.rotation.y = time * 0.00008;
+        updateMagicParticles(time * 0.001);
+        updateBottleFade(time);
+        shelfPieces.forEach(({ mesh, baseY, phase }) => {
+          mesh.position.y = baseY + 0.05 + Math.sin(time * 0.0011 + phase) * 0.03;
+        });
+        const particlePositionAttribute = particles.geometry.attributes.position;
+        for (let i = 0; i < particleCount; i += 1) {
+          particlePositionAttribute.setY(
+            i,
+            particleBaseY[i] + Math.sin(time * 0.0008 + particlePhases[i]) * 0.06,
+          );
+        }
+        particlePositionAttribute.needsUpdate = true;
       }
-      particlePositionAttribute.needsUpdate = true;
       renderer.render(scene, camera);
     }
 

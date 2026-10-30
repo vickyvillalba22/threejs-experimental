@@ -60,6 +60,18 @@ export default function HomeExperience({ devTarget = "" }) {
         backgroundImage: "linear-gradient(rgba(5, 5, 8, 0.38), rgba(5, 5, 8, 0.55)), url('/imgs/home-back-1.jpeg')",
       }}
     >
+      <video
+        className="absolute inset-0 h-full w-full object-cover"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        poster="/imgs/home-back-1.jpeg"
+        aria-hidden="true"
+      >
+        <source src="/imgs/home-back-video.mp4" type="video/mp4" />
+      </video>
       <ParticleTrail onReveal={() => setIsEntranceRevealed(true)} />
       <div className="absolute right-6 top-6 z-[40] flex items-center gap-3 max-[600px]:left-6 max-[600px]:right-6 max-[600px]:justify-between">
         <span className="text-[12px] tracking-[0.12em]" aria-live="polite">
