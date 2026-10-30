@@ -26,6 +26,11 @@ export const chapters = {
     // Confiar en Julian -> router.push('/escena/final-a')
     // Desconfiar de Julian -> router.push('/escena/final-b')
   },
+  "sombrero": {
+    id: "sombrero",
+    title: "El Sombrero de Copa",
+    description: "El último objeto espera frente a ti. Dentro del sombrero se esconde una pregunta decisiva.",
+  },
   "tuneles": {
     id: "tuneles",
     title: "Los Túneles Subterráneos",

@@ -9,6 +9,7 @@ import BackButton from '@/components/ui/BackButton';
 import HubPortal3D from '@/components/hub/HubPortal3D';
 import TiendaExperience from '@/components/chapters/tienda/TiendaExperience';
 import CarruselExperience from '@/components/chapters/carrusel/CarruselExperience';
+import HatExperience from '@/components/chapters/sombrero/HatExperience';
 import FinalAExperience from '@/components/chapters/final/FinalAExperience';
 import { useProgress } from '@/hooks/useProgress';
 
@@ -38,6 +39,10 @@ export default function EscenaDinamica({ params }) {
 
   if (chapterId === 'carrusel') {
     return <CarruselExperience />;
+  }
+
+  if (chapterId === 'sombrero') {
+    return <HatExperience />;
   }
 
   if (chapterId === 'final-a') {

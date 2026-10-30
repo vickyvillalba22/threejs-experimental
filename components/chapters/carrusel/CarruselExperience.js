@@ -15,7 +15,6 @@ export default function CarruselExperience() {
   const { collectArtifact } = useProgress();
   const [foundCards, setFoundCards] = useState([]);
   const [phase, setPhase] = useState("search");
-  const [riddleAnswer, setRiddleAnswer] = useState("");
   const [message, setMessage] = useState("");
   const [orderedCards, setOrderedCards] = useState(() => shuffle(CARD_VALUES));
   const [draggedValue, setDraggedValue] = useState(null);
@@ -28,7 +27,6 @@ export default function CarruselExperience() {
     setFoundCards(nextCards);
 
     if (nextCards.length === CARD_VALUES.length) {
-      collectArtifact({ artifactId: "baraja-de-cartas", result: "correct" });
       setPhase("order");
       setMessage("Las siete cartas han aparecido. Ordénalas de menor a mayor.");
     }
@@ -51,9 +49,8 @@ export default function CarruselExperience() {
     setOrderedCards(nextOrder);
 
     if (nextOrder.every((value, index) => value === index + 1)) {
-      collectArtifact({ artifactId: "sombrero-de-copa", result: "correct" });
-      setPhase("hat-riddle");
-      setMessage("El sombrero de copa guarda una última pregunta.");
+      collectArtifact({ artifactId: "baraja-de-cartas", result: "correct" });
+      router.push("/archivo/sombrero");
     } else {
       setMessage("Sigue ordenando las cartas de menor a mayor.");
     }
@@ -68,16 +65,6 @@ export default function CarruselExperience() {
   function handleCardDragEnd() {
     setDraggedValue(null);
     setDragOverValue(null);
-  }
-
-  function solveFinalRiddle(event) {
-    event.preventDefault();
-    if (riddleAnswer.trim().toLocaleLowerCase() !== "magia") {
-      setMessage("El sombrero no reconoce esa respuesta.");
-      return;
-    }
-
-    router.push("/archivo/final-a");
   }
 
   return (
@@ -142,25 +129,6 @@ export default function CarruselExperience() {
           </>
         )}
 
-        {phase === "hat-riddle" && (
-          <form onSubmit={solveFinalRiddle}>
-            <p className="carousel-experience__eyebrow">DENTRO DEL SOMBRERO</p>
-            <h1>La última pregunta</h1>
-            <p className="carousel-experience__riddle">
-              No se puede tocar,<br />
-              pero transforma los deseos.<br />
-              ¿Qué te trajo hasta aquí?
-            </p>
-            <input
-              value={riddleAnswer}
-              onChange={(event) => setRiddleAnswer(event.target.value)}
-              placeholder="Tu respuesta"
-              autoFocus
-            />
-            <button type="submit" className="carousel-experience__submit">RESPONDER</button>
-            {message && <p className="carousel-experience__message">{message}</p>}
-          </form>
-        )}
       </section>
     </main>
   );
