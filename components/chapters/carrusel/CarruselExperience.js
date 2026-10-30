@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@/hooks/useProgress";
 import CarruselScene from "@/components/chapters/carrusel/CarruselScene";
@@ -15,10 +15,11 @@ export default function CarruselExperience() {
   const { collectArtifact } = useProgress();
   const [foundCards, setFoundCards] = useState([]);
   const [phase, setPhase] = useState("search");
-  const [nextValue, setNextValue] = useState(1);
   const [riddleAnswer, setRiddleAnswer] = useState("");
   const [message, setMessage] = useState("");
-  const orderedCards = useMemo(() => shuffle(CARD_VALUES), []);
+  const [orderedCards, setOrderedCards] = useState(() => shuffle(CARD_VALUES));
+  const [draggedValue, setDraggedValue] = useState(null);
+  const [dragOverValue, setDragOverValue] = useState(null);
 
   function findCard(value) {
     if (foundCards.includes(value)) return;
@@ -33,20 +34,40 @@ export default function CarruselExperience() {
     }
   }
 
-  function orderCard(value) {
-    if (value !== nextValue) {
-      setMessage("La secuencia no es correcta. Empieza por la carta menor.");
-      return;
-    }
+  function handleCardDrop(event, targetValue) {
+    event.preventDefault();
+    const sourceValue = Number(event.dataTransfer.getData("text/plain")) || draggedValue;
+    setDragOverValue(null);
+    setDraggedValue(null);
 
-    if (value === CARD_VALUES.length) {
+    if (!sourceValue || sourceValue === targetValue) return;
+
+    const nextOrder = [...orderedCards];
+    const sourceIndex = nextOrder.indexOf(sourceValue);
+    let targetIndex = nextOrder.indexOf(targetValue);
+    nextOrder.splice(sourceIndex, 1);
+    if (sourceIndex < targetIndex) targetIndex -= 1;
+    nextOrder.splice(targetIndex, 0, sourceValue);
+    setOrderedCards(nextOrder);
+
+    if (nextOrder.every((value, index) => value === index + 1)) {
       collectArtifact({ artifactId: "sombrero-de-copa", result: "correct" });
       setPhase("hat-riddle");
       setMessage("El sombrero de copa guarda una última pregunta.");
-      return;
+    } else {
+      setMessage("Sigue ordenando las cartas de menor a mayor.");
     }
+  }
 
-    setNextValue((current) => current + 1);
+  function handleCardDragStart(event, value) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(value));
+    setDraggedValue(value);
+  }
+
+  function handleCardDragEnd() {
+    setDraggedValue(null);
+    setDragOverValue(null);
   }
 
   function solveFinalRiddle(event) {
@@ -61,7 +82,7 @@ export default function CarruselExperience() {
 
   return (
     <main className="carousel-experience">
-      <CarruselScene />
+      <CarruselScene onCardFound={findCard} />
       <section className="carousel-experience__panel">
         {phase === "search" && (
           <>
@@ -93,17 +114,30 @@ export default function CarruselExperience() {
           <>
             <p className="carousel-experience__eyebrow">LA BARAJA HA SIDO REVELADA</p>
             <h1>Ordena las cartas</h1>
-            <p className="carousel-experience__copy">Selecciona la siguiente carta en orden ascendente.</p>
+            <p className="carousel-experience__copy">Arrastra las cartas para ordenarlas de menor a mayor.</p>
             <div className="carousel-cards carousel-cards--order" aria-label="Orden de las cartas">
               {orderedCards.map((value) => (
-                <button key={value} type="button" onClick={() => orderCard(value)}>
-                  {value}
+                <button
+                  key={value}
+                  type="button"
+                  draggable
+                  className={`carousel-order-card ${draggedValue === value ? "is-dragging" : ""} ${dragOverValue === value ? "is-drag-target" : ""}`}
+                  onDragStart={(event) => handleCardDragStart(event, value)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDragOverValue(value);
+                  }}
+                  onDrop={(event) => handleCardDrop(event, value)}
+                  onDragEnd={handleCardDragEnd}
+                  aria-label={`Carta ${value}. Arrástrala para cambiar su posición.`}
+                >
+                  <span className="carousel-order-card__rank">{value}</span>
+                  <span className="carousel-order-card__suit" aria-hidden="true">♥</span>
+                  <span className="carousel-order-card__rank carousel-order-card__rank--bottom">{value}</span>
                 </button>
               ))}
             </div>
-            <p className="carousel-experience__status" aria-live="polite">
-              Próxima carta: {nextValue}
-            </p>
+            <p className="carousel-experience__status" aria-live="polite">Arrastra y suelta cada carta en su lugar.</p>
             {message && <p className="carousel-experience__message">{message}</p>}
           </>
         )}

@@ -3,9 +3,15 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { createFloatingCards } from "@/components/chapters/carrusel/FloatingCards";
 
-export default function CarruselScene() {
+export default function CarruselScene({ onCardFound }) {
   const containerRef = useRef(null);
+  const onCardFoundRef = useRef(onCardFound);
+
+  useEffect(() => {
+    onCardFoundRef.current = onCardFound;
+  }, [onCardFound]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -164,7 +170,7 @@ export default function CarruselScene() {
             material.color?.set("#ffffff");
             material.transparent = true;
             material.opacity = 0.72;
-            material.depthWrite = false;
+            material.depthWrite = true;
             material.side = THREE.DoubleSide;
 
             if ("roughness" in material) material.roughness = 0.18;
@@ -194,6 +200,14 @@ export default function CarruselScene() {
         console.error("No se pudo cargar el carrusel", error);
       },
     );
+
+    const floatingCards = createFloatingCards({
+      scene,
+      camera,
+      renderer,
+      carouselRoot,
+      onCardFound: (value) => onCardFoundRef.current?.(value),
+    });
 
     const pointer = { active: false, x: 0 };
 
@@ -235,6 +249,7 @@ export default function CarruselScene() {
       animationFrame = window.requestAnimationFrame(animate);
       // El carrusel no gira solo: únicamente responde al arrastre del usuario.
       mistMaterial.uniforms.uTime.value = performance.now() * 0.001;
+      floatingCards.update();
       renderer.render(scene, camera);
     }
 
@@ -250,6 +265,7 @@ export default function CarruselScene() {
 
     return () => {
       isDisposed = true;
+      floatingCards.dispose();
       window.cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
       window.removeEventListener("resize", resize);

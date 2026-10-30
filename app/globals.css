@@ -537,6 +537,68 @@
   cursor: pointer;
 }
 
+.carousel-cards--order {
+  grid-template-columns: repeat(4, minmax(3.2rem, 1fr));
+  gap: 0.55rem;
+  margin-top: 1.25rem;
+}
+
+.carousel-order-card {
+  position: relative;
+  aspect-ratio: 0.68 !important;
+  overflow: hidden;
+  border: 1px solid rgba(75, 38, 35, 0.5) !important;
+  border-radius: 0.35rem;
+  background: #f7f0e4 !important;
+  color: #9d2531 !important;
+  box-shadow: 0 0.25rem 0.7rem rgba(0, 0, 0, 0.28);
+  cursor: grab !important;
+  font-family: Georgia, serif;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.carousel-order-card:hover {
+  transform: translateY(-0.25rem) !important;
+  border-color: #9d2531 !important;
+}
+
+.carousel-order-card:active,
+.carousel-order-card.is-dragging {
+  cursor: grabbing !important;
+  opacity: 0.55;
+  transform: scale(0.96) !important;
+}
+
+.carousel-order-card.is-drag-target {
+  border-color: #e2b95d !important;
+  box-shadow: 0 0 0 2px rgba(226, 185, 93, 0.7), 0 0.25rem 0.7rem rgba(0, 0, 0, 0.28);
+}
+
+.carousel-order-card__rank {
+  position: absolute;
+  top: 0.22rem;
+  left: 0.3rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.carousel-order-card__rank--bottom {
+  top: auto;
+  right: 0.3rem;
+  bottom: 0.22rem;
+  left: auto;
+  transform: rotate(180deg);
+}
+
+.carousel-order-card__suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  line-height: 1;
+}
+
 .carousel-experience__riddle {
   margin: 2rem 0;
   color: var(--color-subtle);
