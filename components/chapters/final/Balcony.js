@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 
-const BALCONY_MODEL_URL = "/models/balcony.glb";
+const BALCONY_MODEL_URL = "/models/balcony-v2.glb";
 
 function disposeObject(object) {
   object.traverse((child) => {
