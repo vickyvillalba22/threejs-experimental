@@ -757,6 +757,17 @@
   margin-top: 1.2rem;
 }
 
+.final-a-experience__home--bottom {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 10;
+  margin-top: 0;
+  transform: translateX(-50%);
+  background: rgba(8, 7, 10, 0.68);
+  backdrop-filter: blur(8px);
+}
+
 @keyframes final-a-glow {
   from { transform: scale(0.94); opacity: 0.65; }
   to { transform: scale(1.06); opacity: 1; }

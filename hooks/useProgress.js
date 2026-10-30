@@ -18,7 +18,18 @@ import {
   signInWithPopup,
   signOut,
 } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { chapters } from "@/data/chapters";
 import { getFirebaseServices, hasFirebaseConfig } from "@/lib/firebase";
 
@@ -122,9 +133,11 @@ function useProgressState() {
   const [artifacts, setArtifacts] = useState([]);
   const [fragments, setFragments] = useState([]);
   const [wish, setWish] = useState("");
+  const [wishes, setWishes] = useState([]);
   const cluesRef = useRef([]);
   const artifactsRef = useRef([]);
   const fragmentsRef = useRef([]);
+  const pendingWishRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [syncState, setSyncState] = useState("local");
   const [remoteUser, setRemoteUser] = useState(null);
@@ -352,6 +365,67 @@ function useProgressState() {
     );
   }, []);
 
+  useEffect(() => {
+    if (!hasFirebaseConfig || !PROGRESS_PERSISTENCE_ENABLED || !remoteUser) {
+      return undefined;
+    }
+
+    const { db } = getFirebaseServices();
+    const wishesQuery = query(
+      collection(db, "wishes"),
+      orderBy("createdAt", "desc"),
+      limit(120),
+    );
+
+    const unsubscribe = onSnapshot(
+      wishesQuery,
+      (snapshot) => {
+        setWishes(
+          snapshot.docs
+            .map((wishDocument) => {
+              const data = wishDocument.data();
+              return {
+                id: wishDocument.id,
+                text: typeof data.text === "string" ? data.text : "",
+              };
+            })
+            .filter((wishDocument) => wishDocument.text),
+        );
+      },
+      (error) => {
+        console.warn("No se pudieron cargar los deseos del cielo.", error);
+      },
+    );
+
+    return unsubscribe;
+  }, [remoteUser]);
+
+  useEffect(() => {
+    if (
+      !remoteUser ||
+      !hasFirebaseConfig ||
+      !PROGRESS_PERSISTENCE_ENABLED ||
+      !pendingWishRef.current
+    ) {
+      return undefined;
+    }
+
+    const pendingWish = pendingWishRef.current;
+    pendingWishRef.current = null;
+    const { db } = getFirebaseServices();
+
+    addDoc(collection(db, "wishes"), {
+      text: pendingWish.slice(0, 280),
+      userId: remoteUser.uid,
+      createdAt: serverTimestamp(),
+    }).catch((error) => {
+      pendingWishRef.current = pendingWish;
+      console.warn("No se pudo sincronizar el deseo pendiente.", error);
+    });
+
+    return undefined;
+  }, [remoteUser]);
+
   const saveWish = useCallback((value) => {
     const nextWish = value.trim();
     setWish(nextWish);
@@ -361,7 +435,30 @@ function useProgressState() {
       fragments: fragmentsRef.current,
       wish: nextWish,
     });
-  }, []);
+
+    if (nextWish) {
+      setWishes((currentWishes) => [
+        ...currentWishes,
+        {
+          id: `pending-${Date.now()}`,
+          text: nextWish.slice(0, 280),
+        },
+      ]);
+    }
+
+    if (remoteUser && hasFirebaseConfig && PROGRESS_PERSISTENCE_ENABLED && nextWish) {
+      const { db } = getFirebaseServices();
+      addDoc(collection(db, "wishes"), {
+        text: nextWish.slice(0, 280),
+        userId: remoteUser.uid,
+        createdAt: serverTimestamp(),
+      }).catch((error) => {
+        console.warn("No se pudo guardar el deseo en el cielo.", error);
+      });
+    } else if (hasFirebaseConfig && PROGRESS_PERSISTENCE_ENABLED && nextWish) {
+      pendingWishRef.current = nextWish;
+    }
+  }, [remoteUser]);
 
   const signInWithGoogle = useCallback(async () => {
     setAuthLoading(true);
@@ -432,6 +529,7 @@ function useProgressState() {
     syncState,
     saveWish,
     wish,
+    wishes,
   };
 }
 
