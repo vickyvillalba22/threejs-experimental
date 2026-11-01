@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import HatScene from "@/components/chapters/sombrero/HatScene";
 import { useProgress } from "@/hooks/useProgress";
 
-export default function HatExperience() {
+export default function HatExperience({ title, description, instructions }) {
   const router = useRouter();
   const { collectArtifact } = useProgress();
   const [phase, setPhase] = useState("hat-reveal");
@@ -41,10 +41,9 @@ export default function HatExperience() {
       {phase === "hat-reveal" && (
         <section className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center p-6 sm:bottom-8">
           <div className="max-w-sm border border-white/20 bg-black/60 px-5 py-4 text-center backdrop-blur-sm">
-            <p className="text-xs tracking-[0.18em] text-app-subtle">EL SOMBRERO GUARDA UN SECRETO</p>
-            <p className="mt-3 text-sm leading-relaxed text-app-text">
-              Arrástralo hacia arriba y dale la vuelta para descubrir qué esconde en su interior.
-            </p>
+            <h1 className="font-app-display text-2xl text-app-text">{title}</h1>
+            <p className="mt-3 text-[24px] leading-relaxed text-app-muted">{description}</p>
+            <p className="mt-3 text-[24px] leading-relaxed text-app-text">{instructions}</p>
           </div>
         </section>
       )}
@@ -52,7 +51,7 @@ export default function HatExperience() {
       {phase === "hat-riddle" && (
         <section className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center p-6 pb-8 text-center sm:items-center sm:pb-6">
           <form className="hat-riddle-reveal pointer-events-auto w-full max-w-lg" onSubmit={solveRiddle}>
-            <p className="font-app-display text-2xl leading-relaxed text-app-text sm:text-3xl">
+            <p className="object-modal-copy font-app-display leading-relaxed text-app-text">
               No se puede tocar,<br />
               pero transforma los deseos.<br />
               ¿Qué te trajo hasta aquí?

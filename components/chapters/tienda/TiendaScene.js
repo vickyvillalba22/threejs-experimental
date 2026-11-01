@@ -326,8 +326,13 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
         });
 
         pocketWatch.add(gltf.scene);
-        hourHand = gltf.scene.getObjectByName("Hour Hand");
-        minuteHand = gltf.scene.getObjectByName("Minute Hand");
+        // Algunos exportadores de Blender conservan el nombre exacto y otros
+        // añaden sufijos. Buscamos ambos casos para no perder la interacción.
+        gltf.scene.traverse((object) => {
+          const objectName = object.name.toLowerCase().replace(/[_-]+/g, " ");
+          if (!hourHand && objectName.includes("hour hand")) hourHand = object;
+          if (!minuteHand && objectName.includes("minute hand")) minuteHand = object;
+        });
         pocketWatch.updateMatrixWorld(true);
         if (hourHand && minuteHand) {
           const hourHandCenter = new THREE.Vector3();
@@ -723,7 +728,11 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       // en sentido horario: invertimos el ángulo para evitar el efecto espejo.
       const normalizedAngle = (Math.PI / 2 - angle + Math.PI * 2) % (Math.PI * 2);
       const hourIndex = Math.round((normalizedAngle / (Math.PI * 2)) * 12) % 12;
-      const hour = hourIndex || 12;
+      // La aguja horaria del GLB parte con un desfase visual de dos horas.
+      // Corregimos solo la lectura para que la hora mostrada coincida con la
+      // posición que ve el usuario, sin alterar la rotación ya calibrada.
+      const correctedHourIndex = (hourIndex - 2 + 12) % 12;
+      const hour = correctedHourIndex || 12;
       const pointerRotation = Math.PI / 2 - angle;
       const hourRotation = hourIndex * (Math.PI * 2 / 12);
 
@@ -732,32 +741,46 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       // Las agujas del modelo usan ejes locales distintos: la horaria gira
       // sobre Z y la minutera, que está modelada en el plano XZ, sobre Y.
       minuteHand.rotation.y = pointerRotation;
-      hourHand.rotation.z = hourRotation;
+      // El eje local de la aguja horaria del modelo está invertido respecto
+      // al sentido horario de la pantalla.
+      hourHand.rotation.z = -hourRotation;
       onClockHourChangeRef.current?.(hour);
     }
 
     function isPointerOverClock() {
-      if (raycaster.intersectObject(pocketWatch, true).length > 0) return true;
       if (!pocketWatchBounds) return false;
 
       const center = clockHandsCenter?.clone() || pocketWatchBounds.getCenter(new THREE.Vector3());
       const projectedCenter = center.project(camera);
-      const halfHeight = pocketWatchBounds.getSize(new THREE.Vector3()).y / 2;
-      const projectedTop = center.clone().add(new THREE.Vector3(0, halfHeight, 0)).project(camera);
-      const radius = Math.abs(projectedTop.y - projectedCenter.y) * 1.15;
+      // No dependemos únicamente del raycaster: las agujas pueden quedar
+      // ocultas por la carcasa o tener una geometría muy fina. Usamos el
+      // radio proyectado del bounding box completo como zona de arrastre.
+      const { min, max } = pocketWatchBounds;
+      const projectedRadius = Math.max(
+        ...[
+          new THREE.Vector3(min.x, min.y, min.z),
+          new THREE.Vector3(min.x, min.y, max.z),
+          new THREE.Vector3(min.x, max.y, min.z),
+          new THREE.Vector3(min.x, max.y, max.z),
+          new THREE.Vector3(max.x, min.y, min.z),
+          new THREE.Vector3(max.x, min.y, max.z),
+          new THREE.Vector3(max.x, max.y, min.z),
+          new THREE.Vector3(max.x, max.y, max.z),
+        ].map((corner) => corner.project(camera).distanceTo(projectedCenter)),
+      ) * 1.15;
       const distance = Math.hypot(
         pointer.x - projectedCenter.x,
         pointer.y - projectedCenter.y,
       );
 
-      return distance <= radius;
+      return distance <= projectedRadius;
     }
 
     function handlePointerDown(event) {
       updatePointer(event);
 
       if (showPocketWatchRef.current) {
-        if (!hourHand || !minuteHand || !isPointerOverClock()) return;
+        if (!hourHand || !minuteHand) return;
         isClockDragging = true;
         renderer.domElement.setPointerCapture(event.pointerId);
         updateClockFromPointer(event);

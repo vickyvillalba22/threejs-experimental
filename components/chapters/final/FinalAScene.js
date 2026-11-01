@@ -21,9 +21,10 @@ function disposeObject(object) {
   });
 }
 
-export default function FinalAScene({ wishes = [] }) {
+export default function FinalAScene({ wishes = [], onReady }) {
   const containerRef = useRef(null);
   const wishesRef = useRef(wishes);
+  const onReadyRef = useRef(onReady);
   const [hoveredWish, setHoveredWish] = useState(null);
 
   useEffect(() => {
@@ -31,12 +32,16 @@ export default function FinalAScene({ wishes = [] }) {
   }, [wishes]);
 
   useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) return undefined;
 
     const scene = new THREE.Scene();
     const world = createWorld(scene);
-    const balcony = createBalcony(world);
+    const balcony = createBalcony(world, { onReady: () => onReadyRef.current?.() });
     createSky(world);
     createLighting(world);
     const { wishStars, wishStarTexture, syncWishStars } = createEffects(world);

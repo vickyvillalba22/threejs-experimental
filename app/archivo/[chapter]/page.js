@@ -12,6 +12,7 @@ import CarruselExperience from '@/components/chapters/carrusel/CarruselExperienc
 import HatExperience from '@/components/chapters/sombrero/HatExperience';
 import FinalAExperience from '@/components/chapters/final/FinalAExperience';
 import { useProgress } from '@/hooks/useProgress';
+import ChapterInstructions from '@/components/ui/ChapterInstructions';
 
 export default function EscenaDinamica({ params }) {
   const router = useRouter();
@@ -34,19 +35,19 @@ export default function EscenaDinamica({ params }) {
   }
 
   if (chapterId === 'tienda') {
-    return <TiendaExperience />;
+    return <TiendaExperience {...chapterData} />;
   }
 
   if (chapterId === 'carrusel') {
-    return <CarruselExperience />;
+    return <CarruselExperience {...chapterData} />;
   }
 
   if (chapterId === 'sombrero') {
-    return <HatExperience />;
+    return <HatExperience {...chapterData} />;
   }
 
   if (chapterId === 'final-a') {
-    return <FinalAExperience />;
+    return <FinalAExperience {...chapterData} />;
   }
 
   const hubContent = (
@@ -54,6 +55,7 @@ export default function EscenaDinamica({ params }) {
       <div className="relative z-20">
         <BackButton />
       </div>
+      {chapterId !== 'hub' && <ChapterInstructions {...chapterData} />}
       {chapterId === 'hub' ? (
          <HubPortal3D
            onAwaken={() => {
@@ -61,25 +63,21 @@ export default function EscenaDinamica({ params }) {
              setIsRoseRevealed(true);
            }}
          />
-      ) : (
-        <>
-          <h1 className="font-app-display text-4xl text-app-text">{chapterData.title}</h1>
-          <p className="mt-4 max-w-2xl font-app-body leading-relaxed text-app-muted">
-            {chapterData.description}
-          </p>
-        </>
-      )}
+      ) : null}
 
       <div className={chapterId === 'hub'
         ? 'absolute left-6 top-28 z-20 max-w-xs sm:left-8'
         : 'mt-8 flex flex-wrap gap-4'}>
         {chapterId === 'hub' && (
           <div>
-            <h1 className="font-app-display text-5xl text-app-text sm:text-6xl">Bienvenido a Caraval</h1>
-            <p className="mt-5 max-w-md font-app-body leading-relaxed text-app-muted">
+            <h1 className="font-app-display text-5xl text-app-text sm:text-6xl">{chapterData.title}</h1>
+            <p className="mt-5 max-w-md font-app-body text-[24px] leading-relaxed text-app-muted">
+              {chapterData.description}
+            </p>
+            <p className="mt-4 max-w-md font-app-body text-[24px] leading-relaxed text-app-text">
               {isRoseRevealed
                 ? 'El arco ha revelado una rosa. Tómala y continúa hacia la primera escena.'
-                : 'Mantené presionado el arco de entrada para despertarlo.'}
+                : chapterData.instructions}
             </p>
           </div>
         )}

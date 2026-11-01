@@ -6,17 +6,23 @@ import { useProgress } from "@/hooks/useProgress";
 import CarruselScene from "@/components/chapters/carrusel/CarruselScene";
 
 const CARD_VALUES = [1, 2, 3, 4, 5, 6, 7];
-function shuffle(values) {
-  return [...values].sort(() => Math.random() - 0.5);
-}
+const CARD_PIP_POSITIONS = {
+  1: [[3, 2]],
+  2: [[1, 2], [5, 2]],
+  3: [[1, 2], [3, 2], [5, 2]],
+  4: [[1, 1], [1, 3], [5, 1], [5, 3]],
+  5: [[1, 1], [1, 3], [3, 2], [5, 1], [5, 3]],
+  6: [[1, 1], [3, 1], [5, 1], [1, 3], [3, 3], [5, 3]],
+  7: [[1, 1], [3, 1], [5, 1], [1, 3], [3, 2], [5, 3], [3, 3]],
+};
 
-export default function CarruselExperience() {
+export default function CarruselExperience({ title, description, instructions }) {
   const router = useRouter();
   const { collectArtifact } = useProgress();
   const [foundCards, setFoundCards] = useState([]);
   const [phase, setPhase] = useState("search");
   const [message, setMessage] = useState("");
-  const [orderedCards, setOrderedCards] = useState(() => shuffle(CARD_VALUES));
+  const [orderedCards, setOrderedCards] = useState([]);
   const [draggedValue, setDraggedValue] = useState(null);
   const [dragOverValue, setDragOverValue] = useState(null);
 
@@ -27,6 +33,9 @@ export default function CarruselExperience() {
     setFoundCards(nextCards);
 
     if (nextCards.length === CARD_VALUES.length) {
+      // La baraja conserva el orden en que el usuario descubrió las cartas.
+      // Ese mismo orden será el estado inicial del drag and drop.
+      setOrderedCards(nextCards);
       setPhase("order");
       setMessage("Las siete cartas han aparecido. Ordénalas de menor a mayor.");
     }
@@ -74,20 +83,28 @@ export default function CarruselExperience() {
         {phase === "search" && (
           <>
             <p className="carousel-experience__eyebrow">EL CARRUSEL MÁGICO</p>
-            <h1>Encuentra las siete cartas</h1>
-            <p className="carousel-experience__copy">
-              Las cartas están escondidas en el movimiento del carrusel. Explora la escena con calma.
-            </p>
+            <h1>{title}</h1>
+            <p className="carousel-experience__copy carousel-experience__chapter-copy">{description}</p>
+            <p className="carousel-experience__copy carousel-experience__chapter-copy">{instructions}</p>
             <div className="carousel-cards" aria-label="Cartas escondidas">
-              {CARD_VALUES.map((value) => (
+              {foundCards.map((value) => (
                 <button
                   key={value}
                   type="button"
-                  className={foundCards.includes(value) ? "is-found" : ""}
+                  className="is-found"
                   onClick={() => findCard(value)}
-                  disabled={foundCards.includes(value)}
+                  disabled
                 >
-                  {foundCards.includes(value) ? `✓ ${value}` : "?"}
+                  ✓ {value}
+                </button>
+              ))}
+              {CARD_VALUES.filter((value) => !foundCards.includes(value)).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => findCard(value)}
+                >
+                  ?
                 </button>
               ))}
             </div>
@@ -100,8 +117,9 @@ export default function CarruselExperience() {
         {phase === "order" && (
           <>
             <p className="carousel-experience__eyebrow">LA BARAJA HA SIDO REVELADA</p>
-            <h1>Ordena las cartas</h1>
-            <p className="carousel-experience__copy">Arrastra las cartas para ordenarlas de menor a mayor.</p>
+            <h1>{title}</h1>
+            <p className="carousel-experience__copy carousel-experience__chapter-copy">{description}</p>
+            <p className="carousel-experience__copy carousel-experience__chapter-copy">{instructions}</p>
             <div className="carousel-cards carousel-cards--order" aria-label="Orden de las cartas">
               {orderedCards.map((value) => (
                 <button
@@ -119,7 +137,17 @@ export default function CarruselExperience() {
                   aria-label={`Carta ${value}. Arrástrala para cambiar su posición.`}
                 >
                   <span className="carousel-order-card__rank">{value}</span>
-                  <span className="carousel-order-card__suit" aria-hidden="true">♥</span>
+                  <span className="carousel-order-card__pips" aria-hidden="true">
+                    {CARD_PIP_POSITIONS[value].map(([row, column], pipIndex) => (
+                      <span
+                        key={`${value}-${pipIndex}`}
+                        className="carousel-order-card__pip"
+                        style={{ gridRow: row, gridColumn: column }}
+                      >
+                        ♥
+                      </span>
+                    ))}
+                  </span>
                   <span className="carousel-order-card__rank carousel-order-card__rank--bottom">{value}</span>
                 </button>
               ))}

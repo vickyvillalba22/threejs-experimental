@@ -15,7 +15,7 @@ function disposeObject(object) {
   });
 }
 
-export function createBalcony(world) {
+export function createBalcony(world, { onReady } = {}) {
   const balcony = new THREE.Group();
   balcony.name = "Balcony";
   world.add(balcony);
@@ -61,10 +61,12 @@ export function createBalcony(world) {
       });
 
       balcony.add(model);
+      window.requestAnimationFrame(() => onReady?.());
     },
     undefined,
     (error) => {
       console.error("No se pudo cargar el ambiente del final A.", error);
+      onReady?.();
     },
   );
 

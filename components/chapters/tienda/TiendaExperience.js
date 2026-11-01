@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import TiendaScene from "@/components/chapters/tienda/TiendaScene";
 import { useProgress } from "@/hooks/useProgress";
 
-export default function TiendaExperience() {
+export default function TiendaExperience({ title, description }) {
   const router = useRouter();
   const [hasFoundMask, setHasFoundMask] = useState(false);
   const [phase, setPhase] = useState("shop");
@@ -13,7 +13,7 @@ export default function TiendaExperience() {
   const [riddleAnswer, setRiddleAnswer] = useState("");
   const [clockHour, setClockHour] = useState(null);
   const [message, setMessage] = useState("");
-  const { collectArtifact, collectedArtifacts } = useProgress();
+  const { collectArtifact } = useProgress();
 
   function handleGlassClick() {
     setHasFoundMask(true);
@@ -62,23 +62,24 @@ export default function TiendaExperience() {
     router.push("/archivo/carrusel");
   }
 
-  const hasMask = hasFoundMask || collectedArtifacts.has("mascara-veneciana");
-
   return (
     <main className="relative min-h-svh overflow-hidden bg-app-background text-app-text">
+      <header className="pointer-events-none absolute inset-x-4 top-6 z-10 mx-auto max-w-3xl text-center sm:top-8">
+        <h1 className="font-app-display text-4xl text-app-text sm:text-5xl">{title}</h1>
+        <p className="mt-4 text-[24px] leading-relaxed text-app-muted">{description}</p>
+      </header>
       <TiendaScene
         onMaskClick={handleGlassClick}
         onClockHourChange={setClockHour}
         showPocketWatch={phase === "clock"}
       />
 
-      {hasMask && phase === "shop" && (
+      {hasFoundMask && phase === "shop" && (
         <section
           className="absolute inset-x-4 bottom-6 z-10 mx-auto max-w-md rounded-2xl border border-white/25 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-md sm:bottom-8 sm:p-6"
           aria-label="Máscara veneciana"
         >
-          <p className="font-app-display text-2xl text-app-text">La máscara veneciana</p>
-          <p className="mt-3 text-sm leading-relaxed text-app-muted">
+          <p className="object-modal-copy mt-3 leading-relaxed text-app-text">
             La máscara está al alcance de tu mano, pero la tienda exige un pago antes de entregártela.
           </p>
           <form className="mt-5 grid gap-3" onSubmit={payWithSecret}>
@@ -118,7 +119,7 @@ export default function TiendaExperience() {
         <section className="absolute inset-0 z-20 grid place-items-center bg-black p-6 text-center">
           <form className="w-full max-w-md" onSubmit={solveClockRiddle}>
             <p className="text-xs tracking-[0.18em] text-app-subtle">LA SIGUIENTE PIEZA ESTÁ OCULTA</p>
-            <p className="mt-6 font-app-display text-3xl text-app-text">
+            <p className="object-modal-copy mt-6 font-app-display text-app-text">
               No camino, pero avanzo.<br />
               No hablo, pero marco el momento.<br />
               ¿Qué soy?
@@ -140,17 +141,17 @@ export default function TiendaExperience() {
 
       {phase === "clock" && (
         <section className="pointer-events-none absolute inset-0 z-20 flex items-center bg-black/35 p-4 sm:p-8">
-          <div className="pointer-events-auto w-full max-w-md border border-white/15 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:w-1/2 sm:max-w-lg sm:p-8">
+          <div className="pointer-events-none w-full max-w-md border border-white/15 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:w-1/2 sm:max-w-lg sm:p-8">
             <p className="text-xs tracking-[0.18em] text-app-subtle">EL RELOJ DE BOLSILLO</p>
             <p className="mt-5 font-app-display text-3xl text-app-text">Ponlo en hora.</p>
-            <p className="mt-3 text-xs leading-relaxed text-app-subtle">
+            <p className="object-modal-copy mt-3 leading-relaxed text-app-subtle">
               Arrastra las agujas hasta marcar la hora correcta. Los minutos no importan.
             </p>
             <p className="mt-5 text-sm text-app-subtle" aria-live="polite">
               Hora seleccionada: {clockHour || "—"}
             </p>
             <div>
-              <button type="button" onClick={setClock} className="mt-5 border border-app-border px-5 py-3 text-xs tracking-[0.14em] hover:border-app-accent">
+              <button type="button" onClick={setClock} className="pointer-events-auto mt-5 border border-app-border px-5 py-3 text-xs tracking-[0.14em] hover:border-app-accent">
                 AJUSTAR EL RELOJ
               </button>
             </div>
