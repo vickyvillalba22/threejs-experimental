@@ -1,0 +1,103 @@
+.legendProgress {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 35;
+  width: 11rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(237, 237, 237, 0.2);
+  border-radius: 8px;
+  background: rgba(5, 5, 7, 0.68);
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--color-subtle);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+
+.figure {
+  display: block;
+  width: 100%;
+  height: 11rem;
+  margin: 0.5rem auto 0;
+  overflow: visible;
+}
+
+.facets,
+.contour {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.contour {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.guide {
+  color: rgba(237, 237, 237, 0.1);
+}
+
+.guide .facets {
+  fill-opacity: 0.025;
+  stroke-width: 0.45;
+}
+
+.guide .contour {
+  stroke-width: 0.9;
+}
+
+.fragment {
+  animation: fragmentReveal 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.fragment .facets {
+  fill-opacity: 0.09;
+  stroke-width: 0.45;
+}
+
+.fragment .contour {
+  stroke-width: 0.95;
+}
+
+.caption {
+  min-height: 2rem;
+  margin: 0.35rem 0 0;
+  color: var(--color-faint);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+@keyframes fragmentReveal {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .legendProgress {
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 7.5rem;
+    padding: 0.55rem;
+  }
+
+  .figure {
+    height: 8rem;
+  }
+}

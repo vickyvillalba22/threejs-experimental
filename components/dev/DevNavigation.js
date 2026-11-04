@@ -21,9 +21,9 @@ export default function DevNavigation() {
   if (process.env.NODE_ENV === "production") return null;
 
   return (
-    <details className="fixed bottom-4 right-4 z-[100] w-52 rounded-xl border border-yellow-300/40 bg-black/85 p-3 text-yellow-100 shadow-2xl backdrop-blur-md">
+    <details className="fixed bottom-4 right-4 z-[100] w-52 rounded-xl border border-purple-400 bg-black/85 p-3 text-purple-200 shadow-2xl backdrop-blur-md">
       <summary className="cursor-pointer text-[10px] tracking-[0.16em]">MODO DESARROLLO</summary>
-      <p className="mt-2 text-[10px] leading-relaxed text-yellow-100/60">
+      <p className="mt-2 text-[13px] leading-relaxed text-purple-200">
         Accesos directos para probar escenas sin recorrer la historia.
       </p>
       <nav className="mt-3 grid gap-1" aria-label="Navegación de desarrollo">
@@ -31,7 +31,7 @@ export default function DevNavigation() {
           <button
             key={destination.href}
             type="button"
-            className={`rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-yellow-100/15 ${
+            className={`rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-purple-900 ${
               pathname === destination.href ? "bg-yellow-100/15" : ""
             }`}
             onClick={() => router.push(destination.href)}

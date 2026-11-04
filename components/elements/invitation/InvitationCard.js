@@ -3,16 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { AnimatePresence, motion } from "motion/react";
 import LegendProgress from "@/components/progress/LegendProgress";
 import { useProgress } from "@/hooks/useProgress";
-import { COIN_ENTRANCE_DURATION, COIN_SAVE_DURATION, HOLD_DURATION, SEAL_TRANSFORM_DURATION } from "./constants";
+import {
+  COIN_ENTRANCE_DURATION,
+  COIN_SAVE_DURATION,
+  HOLD_DURATION,
+  PEN_FRAGMENT_MESSAGE_DURATION,
+  PEN_REVEAL_DURATION,
+  SEAL_TRANSFORM_DURATION,
+} from "./constants";
 import { easeOutCubic, getWorldPointAtScreenPosition } from "./invitationAnimations";
 import { createLetterTexture } from "./invitationTexture";
+import styles from "./InvitationCard.module.css";
 
 function RoseSymbol({ progress }) {
   return (
     <svg
-      className="h-[86px] w-[86px]"
+      className={styles.roseSymbol}
       style={{ filter: `drop-shadow(0 0 ${progress * 14 + 3}px rgba(190, 20, 50, ${0.2 + progress * 0.65}))` }}
       viewBox="0 0 120 120"
       aria-hidden="true"
@@ -48,9 +57,11 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const holdStartRef = useRef(null);
   const roseProgressRef = useRef(0);
   const transformationRef = useRef({ active: false, startedAt: 0 });
+  const penRevealRef = useRef({ active: false, completed: false, startedAt: 0 });
   const coinEntranceRef = useRef({ active: false, startedAt: 0 });
   const transformationTimeoutRef = useRef(null);
   const transformationEndTimeoutRef = useRef(null);
+  const penFragmentMessageTimeoutRef = useRef(null);
   const coinSaveTimeoutRef = useRef(null);
   const coinSaveRequestRef = useRef(null);
   const drawingRef = useRef({ active: false, lastPoint: null });
@@ -66,9 +77,11 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const [isAurioRevealed, setIsAurioRevealed] = useState(false);
   const [isCoinSaving, setIsCoinSaving] = useState(false);
   const [aurioMessage, setAurioMessage] = useState("");
+  const [isPenFragmentMessageVisible, setIsPenFragmentMessageVisible] = useState(false);
   const { collectArtifact, collectedArtifacts } = useProgress();
 
-  const hasPen = hasDrawnLetter || collectedArtifacts.has("pluma-tinta");
+  const hasPen = collectedArtifacts.has("pluma-tinta");
+  const hasRevealedLetter = hasDrawnLetter || hasPen;
   const hasAurio = hasPaintedAurio || collectedArtifacts.has("aurio");
 
   function movePenToPointer(event) {
@@ -99,7 +112,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   }
 
   function handlePenPointerDown(event) {
-    if (hasPen || isHoldingPen) return;
+    if (hasRevealedLetter || isHoldingPen) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     penDragRef.current.active = true;
     movePenToPointer(event);
@@ -116,10 +129,6 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     event.currentTarget.releasePointerCapture?.(event.pointerId);
 
     if (isPointerOverLetter(event)) {
-      if (penGroupRef.current) {
-        penGroupRef.current.visible = false;
-        penGroupRef.current.position.set(0, 0, -10);
-      }
       revealLetter();
       return;
     }
@@ -136,7 +145,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
 
   useEffect(() => {
     const canvas = drawingCanvasRef.current;
-    if (!canvas || !isHoldingPen || hasPen) return undefined;
+    if (!canvas || !isHoldingPen || hasRevealedLetter) return undefined;
 
     const resizeCanvas = () => {
       const bounds = canvas.getBoundingClientRect();
@@ -156,7 +165,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     const observer = new ResizeObserver(resizeCanvas);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [hasPen, isHoldingPen]);
+  }, [hasRevealedLetter, isHoldingPen]);
 
   function animateRoseHold(timestamp) {
     if (holdStartRef.current === null) holdStartRef.current = timestamp;
@@ -167,7 +176,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     if (progress >= 1) {
       holdAnimationRef.current = null;
       holdStartRef.current = null;
-      if (!hasPen) {
+      if (!hasRevealedLetter) {
         setAurioMessage("Primero debes usar la pluma sobre la carta.");
         return;
       }
@@ -219,15 +228,24 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   }
 
   function finishDrawing() {
-    if (hasPen) return;
+    if (hasRevealedLetter) return;
     revealLetter();
   }
 
   function revealLetter() {
-    if (hasPen) return;
-    collectArtifact({ artifactId: "pluma-tinta", result: "correct" });
+    if (hasRevealedLetter) return;
+    penRevealRef.current = { active: true, completed: false, startedAt: performance.now() };
     setHasDrawnLetter(true);
     setIsHoldingPen(false);
+    setIsPenFragmentMessageVisible(true);
+    if (penFragmentMessageTimeoutRef.current !== null) {
+      window.clearTimeout(penFragmentMessageTimeoutRef.current);
+    }
+    penFragmentMessageTimeoutRef.current = window.setTimeout(() => {
+      collectArtifact({ artifactId: "pluma-tinta", result: "correct" });
+      setIsPenFragmentMessageVisible(false);
+      penFragmentMessageTimeoutRef.current = null;
+    }, PEN_FRAGMENT_MESSAGE_DURATION);
     drawingRef.current = { active: false, lastPoint: null };
   }
 
@@ -242,7 +260,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   }
 
   function handleDrawingPointerDown(event) {
-    if (!isHoldingPen || hasPen) return;
+    if (!isHoldingPen || hasRevealedLetter) return;
     const point = getDrawingPoint(event);
     if (!point) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -282,7 +300,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   function saveCoinAndEnterHub() {
     if (isCoinSaving) return;
 
-    const progressFigure = document.querySelector(".legend-progress__figure");
+    const progressFigure = document.querySelector("[data-progress-figure]");
     const progressBounds = progressFigure?.getBoundingClientRect();
     coinSaveRequestRef.current = {
       targetX: progressBounds ? progressBounds.left + progressBounds.width / 2 : window.innerWidth - 80,
@@ -312,7 +330,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     letterGroup.rotation.z = Math.PI / 2;
     letterGroup.visible = !isAurioRevealed;
     scene.add(letterGroup);
-    const texture = createLetterTexture(hasPen);
+    const texture = createLetterTexture(hasRevealedLetter);
     const loader = new GLTFLoader();
     let model;
     let modelSize = null;
@@ -376,6 +394,12 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     penGroup.visible = !hasPen;
     penGroupRef.current = penGroup;
     scene.add(penGroup);
+    const penMaterials = [];
+    const penStartPosition = new THREE.Vector3(1.62, 0.2, 0.3);
+    const penRevealTarget = new THREE.Vector3(0, 0, 0.8);
+    const penWhiteColor = new THREE.Color(0xffffff);
+    const penGoldColor = new THREE.Color(0xd3ad72);
+    penGroup.position.copy(penStartPosition);
 
     loader.load(
       "/models/main%20objects/high_poly_stylized_feather_-_free_download.glb",
@@ -392,16 +416,18 @@ export default function InvitationCard({ onClose, onEnterHub }) {
         penModel.traverse((object) => {
           if (!object.isMesh) return;
           object.castShadow = true;
-          object.material = new THREE.MeshStandardMaterial({
-            color: 0xd3ad72,
-            emissive: 0x24130b,
-            emissiveIntensity: 0.18,
-            roughness: 0.62,
-            metalness: 0.08,
-          });
-        });
-        penGroup.add(penModel);
-        penGroup.position.set(1.62, 0.2, 0.3);
+           const material = new THREE.MeshStandardMaterial({
+             color: 0xffffff,
+             emissive: 0x000000,
+             emissiveIntensity: 0.18,
+             roughness: 0.62,
+             metalness: 0.08,
+           });
+           penMaterials.push(material);
+           object.material = material;
+         });
+         penGroup.add(penModel);
+         penGroup.position.copy(penStartPosition);
       },
       undefined,
       () => undefined,
@@ -411,7 +437,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     // Keep the seal hidden as soon as the coin entrance starts. The scene is
     // rebuilt when the entrance state changes, so initializing it as visible
     // here can otherwise make it flash for a frame over the coin.
-    sealGroup.visible = hasPen && !isAurioRevealed && !isCoinEntering;
+    sealGroup.visible = hasRevealedLetter && !isAurioRevealed && !isCoinEntering;
     sealGroup.position.set(0, -1.2, 0.8);
     scene.add(sealGroup);
     const sealMaterials = [];
@@ -565,7 +591,26 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       sealGroup.rotation.y = letterGroup.rotation.y;
       if (penGroup && !penDragRef.current.active) {
         penGroup.rotation.z = Math.sin(elapsed * 1.4) * 0.04;
-        penGroup.position.y = 0.2 + Math.sin(elapsed * 1.1) * 0.08;
+        if (penRevealRef.current.active) {
+          const revealProgress = Math.min(
+            (performance.now() - penRevealRef.current.startedAt) / PEN_REVEAL_DURATION,
+            1,
+          );
+          const revealEase = easeOutCubic(revealProgress);
+          penGroup.position.lerpVectors(penStartPosition, penRevealTarget, revealEase);
+          penMaterials.forEach((material) => {
+            material.color.copy(penWhiteColor).lerp(penGoldColor, revealEase);
+          });
+          if (revealProgress >= 1) {
+            penRevealRef.current.active = false;
+            penRevealRef.current.completed = true;
+          }
+        } else if (penRevealRef.current.completed) {
+          penGroup.position.copy(penRevealTarget);
+          penMaterials.forEach((material) => material.color.copy(penGoldColor));
+        } else {
+          penGroup.position.y = 0.2 + Math.sin(elapsed * 1.1) * 0.08;
+        }
       }
       coinGroup.rotation.y = elapsed * 1.2;
       coinGroup.rotation.x = Math.sin(elapsed * 0.7) * 0.08;
@@ -574,7 +619,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       const transformProgress = transformationRef.current.active
         ? Math.min((performance.now() - transformationRef.current.startedAt) / SEAL_TRANSFORM_DURATION, 1)
         : 0;
-      sealGroup.visible = hasPen && !isAurioRevealed && !isCoinEntering;
+      sealGroup.visible = hasRevealedLetter && !isAurioRevealed && !isCoinEntering;
       if (transformationRef.current.active) {
         sealGroup.rotation.y = elapsed * 4.5;
         sealGroup.rotation.z = elapsed * 1.2;
@@ -686,21 +731,22 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       renderer.dispose();
       container.removeChild(renderer.domElement);
     };
-  }, [hasPen, isAurioRevealed, isCoinEntering, isCoinVisible]);
+  }, [hasPen, hasRevealedLetter, isAurioRevealed, isCoinEntering, isCoinVisible]);
 
   useEffect(() => () => {
     if (holdAnimationRef.current !== null) window.cancelAnimationFrame(holdAnimationRef.current);
     if (transformationTimeoutRef.current !== null) window.clearTimeout(transformationTimeoutRef.current);
     if (transformationEndTimeoutRef.current !== null) window.clearTimeout(transformationEndTimeoutRef.current);
+    if (penFragmentMessageTimeoutRef.current !== null) window.clearTimeout(penFragmentMessageTimeoutRef.current);
     if (coinSaveTimeoutRef.current !== null) window.clearTimeout(coinSaveTimeoutRef.current);
   }, []);
 
   return (
-    <section className="fixed inset-0 z-[50] overflow-hidden bg-[#110d0d]" aria-labelledby="invitation-title">
+    <section className={styles.invitation} aria-labelledby="invitation-title">
       <LegendProgress />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(116,46,37,0.2),transparent_58%)]" />
+      <div className={styles.atmosphere} />
       <button
-        className="absolute right-6 top-5 z-[3] border-0 bg-transparent text-3xl text-[#d9cdb8] transition-colors hover:text-white"
+        className={styles.closeButton}
         onClick={onClose}
         aria-label="Cerrar invitación"
       >
@@ -708,18 +754,18 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       </button>
       <div
         ref={sceneContainerRef}
-        className="absolute left-1/2 top-1/2 aspect-[0.82] h-[min(86svh,760px)] w-auto max-w-[94vw] -translate-x-1/2 -translate-y-1/2"
+        className={styles.sceneContainer}
         aria-hidden="true"
       >
         {isLoading && (
-          <p className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[10px] tracking-[0.16em] text-[#d9cdb8]">
+          <p className={styles.loading}>
             ABRIENDO LA INVITACIÓN…
           </p>
         )}
-        {!hasPen && !isHoldingPen && (
+        {!hasRevealedLetter && !isHoldingPen && (
           <button
             type="button"
-            className="absolute bottom-[18%] left-[58%] right-0 top-[12%] z-[4] cursor-grab border-0 bg-transparent focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-4 active:cursor-grabbing"
+            className={styles.penDropZone}
             onPointerDown={handlePenPointerDown}
             onPointerMove={handlePenPointerMove}
             onPointerUp={handlePenPointerUp}
@@ -728,10 +774,10 @@ export default function InvitationCard({ onClose, onEnterHub }) {
             title="Arrastrá la pluma hasta la carta"
           />
         )}
-        {!hasPen && isHoldingPen && (
+        {!hasRevealedLetter && isHoldingPen && (
           <canvas
             ref={drawingCanvasRef}
-            className="absolute left-[8%] right-[8%] top-[8%] bottom-[18%] z-[3] h-auto w-auto cursor-crosshair touch-none bg-transparent"
+            className={styles.drawingCanvas}
             style={{ backgroundColor: "transparent" }}
             aria-label="Dibuja sobre la carta para revelar su contenido"
             onPointerDown={handleDrawingPointerDown}
@@ -740,9 +786,9 @@ export default function InvitationCard({ onClose, onEnterHub }) {
             onPointerCancel={handleDrawingPointerUp}
           />
         )}
-        {hasPen && !isAurioRevealed && !isTransforming && (
+        {hasRevealedLetter && !isAurioRevealed && !isTransforming && (
           <button
-            className="group absolute bottom-[4%] left-1/2 z-[2] h-[22%] w-[32%] -translate-x-1/2 border-0 bg-transparent p-2 text-[#d9cdb8] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-4"
+            className={styles.roseButton}
             onPointerDown={(event) => {
               event.currentTarget.setPointerCapture(event.pointerId);
               startRoseHold();
@@ -758,40 +804,77 @@ export default function InvitationCard({ onClose, onEnterHub }) {
             aria-label="Mantener presionado el sello para llenarlo y conseguir la moneda"
             aria-pressed={roseProgress > 0}
           >
-            <span className="hidden" aria-hidden="true"><RoseSymbol progress={roseProgress} /></span>
-            <span className="sr-only">Mantené presionado el sello para llenarlo y conseguir la moneda</span>
+            <span className={styles.hidden} aria-hidden="true"><RoseSymbol progress={roseProgress} /></span>
+            <span className={styles.visuallyHidden}>Mantené presionado el sello para llenarlo y conseguir la moneda</span>
           </button>
         )}
       </div>
-      <h2 id="invitation-title" className="sr-only">Invitación a la Isla de los Sueños</h2>
-      <section className="invitation-interactions" aria-label="Objetos de la invitación">
-        <p className="invitation-interactions__eyebrow">PRIMEROS OBJETOS</p>
-        <p className="invitation-interactions__message">
-          {!hasPen
-            ? "La carta está en blanco. Arrastra la pluma hasta la carta."
+      <h2 id="invitation-title" className={styles.visuallyHidden}>Invitación a la Isla de los Sueños</h2>
+      <section className={styles.interactions} aria-label="Objetos de la invitación">
+        <p className={styles.eyebrow}>PRIMEROS OBJETOS</p>
+        <p className={styles.message}>
+          {!hasRevealedLetter
+            ? "Escribas lo que escribas, ella ya sabe lo que quiere decirte."
             : !hasAurio
               ? "La carta ha despertado. Mantén presionada la rosa para pintarla."
               : "La carta guarda sus secretos. Ya puedes dirigirte a Caraval."}
         </p>
-        {isHoldingPen && !hasPen && (
-          <p className="invitation-interactions__hint">Dibuja cualquier forma sobre la carta para revelar su contenido.</p>
+        {isHoldingPen && !hasRevealedLetter && (
+          <p className={styles.hint}>Dibuja cualquier forma sobre la carta para revelar su contenido.</p>
         )}
-        {hasPen && !hasAurio && (
-          <p className="invitation-interactions__hint">Mantén presionada la rosa de la carta.</p>
+        {hasRevealedLetter && !hasAurio && (
+          <p className={styles.hint}>Mantén presionada la rosa de la carta.</p>
         )}
         {aurioMessage && (
-          <p className="invitation-interactions__result" aria-live="polite">{aurioMessage}</p>
+          <p className={styles.result} aria-live="polite">{aurioMessage}</p>
         )}
       </section>
+      <AnimatePresence>
+        {isPenFragmentMessageVisible && !hasPen && (
+          <motion.section
+            className={styles.fragmentReveal}
+            aria-live="polite"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+          >
+            <motion.div
+              className={styles.fragmentPanel}
+              initial={{ opacity: 0, y: 28, scale: 0.9, filter: "blur(8px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -16, scale: 0.96, filter: "blur(5px)" }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <motion.p
+                className={styles.fragmentTitle}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5, ease: "easeOut" }}
+              >
+                Primer fragmento: Pluma de tinta -
+              </motion.p>
+              <motion.p
+                className={styles.fragmentMeaning}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.42, duration: 0.5, ease: "easeOut" }}
+              >
+                <strong>El Poder de Escribir la Realidad:</strong> Representa la autoría absoluta de Legend sobre todo el juego y la magia de la isla.
+              </motion.p>
+            </motion.div>
+          </motion.section>
+        )}
+      </AnimatePresence>
       {isAurioRevealed && !isCoinEntering && (
-        <section className="absolute inset-0 z-[10] grid place-items-end bg-black/35 p-6 pb-12 text-center backdrop-blur-[1px]">
-          <div className="mx-auto w-full max-w-md rounded-2xl border border-[#d9cdb8]/40 bg-[#110d0d]/85 p-6 shadow-[0_0_45px_rgba(214,184,112,0.28)]">
-            <p className="text-[10px] tracking-[0.2em] text-[#d9cdb8]">FRAGMENTO CONSEGUIDO</p>
-            <p className="mt-3 font-app-display text-4xl text-[#f0dfb2]">Moneda de Aurio</p>
-            <p className="mt-2 text-sm text-[#d9cdb8]">El sello se ha convertido en una moneda mágica.</p>
+        <section className={styles.rewardOverlay}>
+          <div className={styles.rewardPanel}>
+            <p className={styles.rewardEyebrow}>FRAGMENTO CONSEGUIDO</p>
+            <p className={styles.rewardTitle}>Moneda de Aurio</p>
+            <p className={styles.rewardText}>El sello se ha convertido en una moneda mágica.</p>
             <button
               type="button"
-              className="mt-5 border border-[#d9cdb8]/60 px-5 py-3 text-xs tracking-[0.16em] text-[#f0dfb2] transition-colors hover:border-[#f0dfb2] hover:bg-[#f0dfb2]/10"
+              className={styles.rewardButton}
               onClick={saveCoinAndEnterHub}
               disabled={isCoinSaving}
             >
