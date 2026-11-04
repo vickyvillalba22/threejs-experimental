@@ -18,6 +18,9 @@ const darkerGrotesque = Darker_Grotesque({
 export const metadata = {
   title: "Caraval: La Isla de los Sueños",
   description: "Experiencia transmedia inspirada en Caraval: La Isla de los Sueños.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }) {

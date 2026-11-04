@@ -42,6 +42,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
   const [removedDoors, setRemovedDoors] = useState([]);
   const [activeDoor, setActiveDoor] = useState(null);
   const [status, setStatus] = useState("idle");
+  const [isKeyCentered, setIsKeyCentered] = useState(false);
   const timerRef = useRef(null);
   const correctDoorRef = useRef(null);
 
@@ -86,7 +87,16 @@ export default function PreHub({ onComplete, onKeyFound }) {
 
       <p className={styles.prehub__status} aria-live="polite">
         {status === "key-revealed"
-          ? "La llave apareció. Hacé click sobre ella para entrar a Caraval."
+          ? isKeyCentered
+            ? (
+              <span className={styles["prehub__fragment-message"]}>
+                <strong className={styles["prehub__fragment-title"]}>La Llave del Destino</strong>
+                <span className={styles["prehub__fragment-copy"]}>
+                  En Caraval las puertas no se abren por azar, sino con la intención sincera de hacia dónde quieres dirigirte.
+                </span>
+              </span>
+            )
+            : "La llave apareció. Hacé click sobre ella para entrar a Caraval."
           : "Elije la puerta correcta para llegar a Caraval"}
       </p>
 
@@ -106,6 +116,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
                 styles[`prehub-door--${door.position}`],
                 activeDoor === door.id ? styles["is-active"] : "",
                 removedDoors.includes(door.id) ? styles["is-removed"] : "",
+                isKeyCentered && activeDoor !== door.id ? styles["is-background"] : "",
               ].filter(Boolean).join(" ")}
               onClick={() => selectDoor(door)}
               disabled={status !== "idle"}
@@ -191,7 +202,11 @@ export default function PreHub({ onComplete, onKeyFound }) {
           originRef={correctDoorRef}
         />
         {status === "key-revealed" && (
-          <KeyReveal originRef={correctDoorRef} onComplete={onComplete} />
+          <KeyReveal
+            originRef={correctDoorRef}
+            onComplete={onComplete}
+            onCenterReached={() => setIsKeyCentered(true)}
+          />
         )}
       </section>
 
