@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import styles from "@/components/hub/PreHub.module.css";
 
 const KEY_GLOW_DURATION = 650;
 
@@ -67,7 +68,7 @@ export default function KeyReveal({ originRef, onComplete }) {
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.setClearColor(0x000000, 0);
-    renderer.domElement.className = "prehub-key-reveal__canvas";
+    renderer.domElement.className = styles["prehub-key-reveal__canvas"];
     canvas.style.display = "none";
     stage.appendChild(renderer.domElement);
 
@@ -201,11 +202,11 @@ export default function KeyReveal({ originRef, onComplete }) {
 
   return (
     <>
-      <canvas ref={canvasRef} className="prehub-key-reveal__canvas" aria-hidden="true" />
+      <canvas ref={canvasRef} className={styles["prehub-key-reveal__canvas"]} aria-hidden="true" />
       {buttonPosition && (
         <button
           type="button"
-          className={`prehub-key-reveal__button ${isGlowing ? "is-glowing" : ""}`}
+          className={`${styles["prehub-key-reveal__button"]} ${isGlowing ? styles["is-glowing"] : ""}`}
           style={{ left: buttonPosition.left, top: buttonPosition.top }}
           onClick={handleKeyClick}
           aria-label="Recoger la llave mágica"

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import KeyReveal from "@/components/hub/KeyReveal";
 import MagicParticlesCanvas from "@/components/hub/MagicParticlesCanvas";
+import styles from "@/components/hub/PreHub.module.css";
 
 const DOORS = [
   {
@@ -80,40 +81,44 @@ export default function PreHub({ onComplete, onKeyFound }) {
   }
 
   return (
-    <main className="prehub min-h-svh overflow-hidden bg-app-background font-app-body text-app-text">
-      <div className="prehub__atmosphere" aria-hidden="true" />
+    <main className={`${styles.prehub} min-h-svh overflow-hidden bg-app-background font-app-body text-app-text`}>
+      <div className={styles.prehub__atmosphere} aria-hidden="true" />
 
-      <p className="prehub__status" aria-live="polite">
+      <p className={styles.prehub__status} aria-live="polite">
         {status === "key-revealed"
           ? "La llave apareció. Hacé click sobre ella para entrar a Caraval."
           : "Elije la puerta correcta para llegar a Caraval"}
       </p>
 
       <section
-        className={`prehub__stage prehub__stage--${status}`}
+        className={styles.prehub__stage}
         aria-label="Puertas de entrada a Caraval"
       >
-        <div className="prehub__doors">
+        <div className={styles.prehub__doors}>
           {DOORS.map((door) => (
             <button
               key={door.id}
               type="button"
               ref={door.effect === "correct" ? correctDoorRef : undefined}
-              className={`prehub-door prehub-door--${door.effect} prehub-door--${door.position} ${
-                activeDoor === door.id ? "is-active" : ""
-              } ${removedDoors.includes(door.id) ? "is-removed" : ""}`}
+              className={[
+                styles["prehub-door"],
+                styles[`prehub-door--${door.effect}`],
+                styles[`prehub-door--${door.position}`],
+                activeDoor === door.id ? styles["is-active"] : "",
+                removedDoors.includes(door.id) ? styles["is-removed"] : "",
+              ].filter(Boolean).join(" ")}
               onClick={() => selectDoor(door)}
               disabled={status !== "idle"}
               aria-label={door.label}
             >
-              <span className="prehub-door__silhouette" aria-hidden="true">
-                <span className="prehub-door__frame">
-                  <span className="prehub-door__face">
-                    <span className="prehub-door__grain" />
-                    <span className="prehub-door__arch" />
-                    <span className="prehub-door__handle" />
-                  {door.effect === "shards" && (
-                      <span className="prehub-door__shards" aria-hidden="true">
+              <span className={styles["prehub-door__silhouette"]} aria-hidden="true">
+                <span className={styles["prehub-door__frame"]}>
+                  <span className={styles["prehub-door__face"]}>
+                    <span className={styles["prehub-door__grain"]} />
+                    <span className={styles["prehub-door__arch"]} />
+                    <span className={styles["prehub-door__handle"]} />
+                    {door.effect === "shards" && (
+                      <span className={styles["prehub-door__shards"]} aria-hidden="true">
                         <i />
                         <i />
                         <i />
@@ -121,7 +126,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
                       </span>
                     )}
                     {door.effect === "water" && (
-                      <span className="prehub-door__ripples" aria-hidden="true">
+                      <span className={styles["prehub-door__ripples"]} aria-hidden="true">
                         <i />
                         <i />
                         <i />
@@ -129,7 +134,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
                     )}
                   </span>
                   {door.effect === "shards" && (
-                    <span className="prehub-door__glass-pieces" aria-hidden="true">
+                    <span className={styles["prehub-door__glass-pieces"]} aria-hidden="true">
                       <i />
                       <i />
                       <i />
@@ -139,7 +144,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
                     </span>
                   )}
                   {door.effect === "water" && (
-                    <span className="prehub-door__droplets" aria-hidden="true">
+                    <span className={styles["prehub-door__droplets"]} aria-hidden="true">
                       <i />
                       <i />
                       <i />
@@ -148,7 +153,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
                     </span>
                   )}
                   {door.effect === "correct" && (
-                    <span className="prehub-door__correct-particles" aria-hidden="true">
+                    <span className={styles["prehub-door__correct-particles"]} aria-hidden="true">
                       <i />
                       <i />
                       <i />
@@ -164,7 +169,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
                     </span>
                   )}
                   {door.effect === "fire" && (
-                    <span className="prehub-door__flames" aria-hidden="true">
+                    <span className={styles["prehub-door__flames"]} aria-hidden="true">
                       <i />
                       <i />
                       <i />
@@ -175,9 +180,9 @@ export default function PreHub({ onComplete, onKeyFound }) {
                     </span>
                   )}
                 </span>
-                <span className="prehub-door__aura" />
+                <span className={styles["prehub-door__aura"]} />
               </span>
-              <span className="prehub-door__caption">{door.label}</span>
+              <span className={styles["prehub-door__caption"]}>{door.label}</span>
             </button>
           ))}
         </div>

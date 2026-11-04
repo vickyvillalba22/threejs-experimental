@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import styles from "@/components/hub/PreHub.module.css";
 
 const PARTICLE_COUNT = 220;
 const EXPLOSION_DURATION = 2200;
@@ -133,5 +134,5 @@ export default function MagicParticlesCanvas({ active, originRef }) {
     };
   }, [active, originRef]);
 
-  return <canvas ref={canvasRef} className="prehub-particles-canvas" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className={styles["prehub-particles-canvas"]} aria-hidden="true" />;
 }
