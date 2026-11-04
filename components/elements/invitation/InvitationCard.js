@@ -10,12 +10,14 @@ import {
   COIN_ENTRANCE_DURATION,
   COIN_SAVE_DURATION,
   HOLD_DURATION,
+  LETTER_TEXT_REVEAL_DURATION,
+  LETTER_TEXT_REVEAL_STEPS,
   PEN_FRAGMENT_MESSAGE_DURATION,
   PEN_REVEAL_DURATION,
   SEAL_TRANSFORM_DURATION,
 } from "./constants";
 import { easeOutCubic, getWorldPointAtScreenPosition } from "./invitationAnimations";
-import { createLetterTexture } from "./invitationTexture";
+import { createLetterTexture, updateLetterTexture } from "./invitationTexture";
 import styles from "./InvitationCard.module.css";
 
 function RoseSymbol({ progress }) {
@@ -58,6 +60,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const roseProgressRef = useRef(0);
   const transformationRef = useRef({ active: false, startedAt: 0 });
   const penRevealRef = useRef({ active: false, completed: false, startedAt: 0 });
+  const letterRevealPlayedRef = useRef(false);
   const coinEntranceRef = useRef({ active: false, startedAt: 0 });
   const transformationTimeoutRef = useRef(null);
   const transformationEndTimeoutRef = useRef(null);
@@ -330,7 +333,19 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     letterGroup.rotation.z = Math.PI / 2;
     letterGroup.visible = !isAurioRevealed;
     scene.add(letterGroup);
-    const texture = createLetterTexture(hasRevealedLetter);
+    const shouldAnimateLetterText =
+      hasRevealedLetter &&
+      !letterRevealPlayedRef.current &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let letterRevealStep = shouldAnimateLetterText ? 0 : LETTER_TEXT_REVEAL_STEPS;
+    const letterRevealStartedAt = performance.now();
+    const texture = createLetterTexture(
+      hasRevealedLetter,
+      shouldAnimateLetterText ? 0 : 1,
+    );
+    if (hasRevealedLetter && !shouldAnimateLetterText) {
+      letterRevealPlayedRef.current = true;
+    }
     const loader = new GLTFLoader();
     let model;
     let modelSize = null;
@@ -583,6 +598,18 @@ export default function InvitationCard({ onClose, onEnterHub }) {
 
     function animate() {
       const elapsed = clock.getElapsedTime();
+      if (shouldAnimateLetterText && letterRevealStep < LETTER_TEXT_REVEAL_STEPS) {
+        const revealProgress = Math.min(
+          (performance.now() - letterRevealStartedAt) / LETTER_TEXT_REVEAL_DURATION,
+          1,
+        );
+        const nextRevealStep = Math.floor(revealProgress * LETTER_TEXT_REVEAL_STEPS);
+        if (nextRevealStep > letterRevealStep) {
+          letterRevealStep = nextRevealStep;
+          updateLetterTexture(texture, true, letterRevealStep / LETTER_TEXT_REVEAL_STEPS);
+        }
+        if (revealProgress >= 1) letterRevealPlayedRef.current = true;
+      }
       letterGroup.position.y = Math.sin(elapsed * 0.8) * 0.04;
       letterGroup.rotation.x += (targetRotationX - letterGroup.rotation.x) * 0.025;
       letterGroup.rotation.y += (targetRotationY - letterGroup.rotation.y) * 0.025;
@@ -870,15 +897,15 @@ export default function InvitationCard({ onClose, onEnterHub }) {
         <section className={styles.rewardOverlay}>
           <div className={styles.rewardPanel}>
             <p className={styles.rewardEyebrow}>FRAGMENTO CONSEGUIDO</p>
-            <p className={styles.rewardTitle}>Moneda de Aurio</p>
-            <p className={styles.rewardText}>El sello se ha convertido en una moneda mágica.</p>
+            <p className={styles.rewardTitle}>El Aurio de Legend</p>
+            <p className={styles.rewardText}>En su superficie resplandece la promesa de un deseo capaz de desafiar la realidad, recordándote que la única forma de reclamarlo será descubriendo la figura secreta de quien gobierna esta feria.</p>
             <button
               type="button"
               className={styles.rewardButton}
               onClick={saveCoinAndEnterHub}
               disabled={isCoinSaving}
             >
-              {isCoinSaving ? "GUARDANDO…" : "CONTINUAR A CARAVAL"}
+              {isCoinSaving ? "GUARDANDO…" : "CONTINUAR"}
             </button>
           </div>
         </section>

@@ -229,7 +229,7 @@
   max-width: 28rem;
   margin: 0 auto;
   padding: 1.5rem;
-  border: 1px solid rgba(217, 205, 184, 0.4);
+  border: 1px solid rgba(254, 254, 254, 0.4);
   border-radius: 1rem;
   background: rgba(17, 13, 13, 0.85);
   box-shadow: 0 0 45px rgba(214, 184, 112, 0.28);
@@ -238,7 +238,7 @@
 .rewardEyebrow {
   margin: 0;
   color: #d9cdb8;
-  font-size: 10px;
+  font-size: 14px;
   letter-spacing: 0.2em;
 }
 
@@ -253,18 +253,19 @@
 .rewardText {
   margin: 0.5rem 0 0;
   color: #d9cdb8;
-  font-size: 0.875rem;
+  font-size: 1.2rem;
   line-height: 1.25;
 }
 
 .rewardButton {
   margin-top: 1.25rem;
   border: 1px solid rgba(217, 205, 184, 0.6);
+  border-radius: 8px;
   background: transparent;
   padding: 0.75rem 1.25rem;
   color: #f0dfb2;
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
   transition: border-color 180ms ease, background 180ms ease;
 }
 

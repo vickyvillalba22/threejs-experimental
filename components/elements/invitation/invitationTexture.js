@@ -1,6 +1,18 @@
 import * as THREE from "three";
 
-function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
+function drawText(context, text, x, y, revealProgress, canvasHeight) {
+  const revealY = revealProgress * (canvasHeight + 100);
+  const revealStart = y - 48;
+  const alpha = Math.max(0, Math.min(1, (revealY - revealStart) / 48));
+  if (alpha <= 0) return;
+
+  context.save();
+  context.globalAlpha *= alpha;
+  context.fillText(text, x, y);
+  context.restore();
+}
+
+function drawWrappedText(context, text, x, y, maxWidth, lineHeight, revealProgress, canvasHeight) {
   const words = text.split(" ");
   let line = "";
   let currentY = y;
@@ -8,7 +20,7 @@ function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
   words.forEach((word) => {
     const candidate = line ? `${line} ${word}` : word;
     if (context.measureText(candidate).width > maxWidth && line) {
-      context.fillText(line, x, currentY);
+      drawText(context, line, x, currentY, revealProgress, canvasHeight);
       line = word;
       currentY += lineHeight;
     } else {
@@ -17,18 +29,17 @@ function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
   });
 
   if (line) {
-    context.fillText(line, x, currentY);
+    drawText(context, line, x, currentY, revealProgress, canvasHeight);
     currentY += lineHeight;
   }
 
   return currentY;
 }
 
-export function createLetterTexture(showContent) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1536;
-  canvas.height = 2048;
+function drawLetterCanvas(canvas, showContent, revealProgress) {
   const context = canvas.getContext("2d");
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
   context.translate(canvas.width, 0);
   context.scale(-1, 1);
   const margin = 120;
@@ -54,22 +65,25 @@ export function createLetterTexture(showContent) {
     context.textAlign = "center";
     context.fillStyle = "#4f2024";
     context.font = "600 44px Georgia, serif";
-    context.fillText("DE LA OFICINA DEL MAESTRO DE CEREMONIAS", canvas.width / 2, 150);
+    drawText(context, "DE LA OFICINA DEL MAESTRO DE CEREMONIAS", canvas.width / 2, 150, revealProgress, canvas.height);
     context.font = "700 100px Georgia, serif";
-    context.fillText("Isla de los Sueños", canvas.width / 2, 255);
+    drawText(context, "Isla de los Sueños", canvas.width / 2, 255, revealProgress, canvas.height);
 
     context.strokeStyle = "rgba(115, 45, 43, 0.45)";
     context.lineWidth = 3;
+    const separatorAlpha = Math.max(0, Math.min(1, (revealProgress * (canvas.height + 100) - 262) / 48));
+    context.globalAlpha = separatorAlpha;
     context.beginPath();
     context.moveTo(margin + 120, 310);
     context.lineTo(canvas.width - margin - 120, 310);
     context.stroke();
+    context.globalAlpha = 1;
 
     context.textAlign = "left";
     context.fillStyle = "#3f2926";
     context.font = "54px Georgia, serif";
     let currentY = 390;
-    currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 72) + 30;
+    currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 72, revealProgress, canvas.height) + 30;
     currentY = drawWrappedText(
       context,
       "Has sido invitado a cruzar las fronteras de Caraval, donde los deseos cobran vida y la ilusión se confunde con la realidad.",
@@ -77,11 +91,13 @@ export function createLetterTexture(showContent) {
       currentY,
       textWidth,
       72,
+      revealProgress,
+      canvas.height,
     ) + 30;
 
     context.fillStyle = "#70252c";
     context.font = "700 42px Georgia, serif";
-    context.fillText("Su Cometido:", margin, currentY);
+    drawText(context, "Su Cometido:", margin, currentY, revealProgress, canvas.height);
     currentY += 76;
     context.fillStyle = "#3f2926";
     context.font = "54px Georgia, serif";
@@ -92,6 +108,8 @@ export function createLetterTexture(showContent) {
       currentY,
       textWidth,
       72,
+      revealProgress,
+      canvas.height,
     ) + 30;
     currentY = drawWrappedText(
       context,
@@ -100,26 +118,36 @@ export function createLetterTexture(showContent) {
       currentY,
       textWidth,
       72,
+      revealProgress,
+      canvas.height,
     ) + 32;
 
     context.textAlign = "center";
     context.fillStyle = "#70252c";
     context.font = "italic 700 54px Georgia, serif";
-    context.fillText('“Recuerda, es solo un juego...”', canvas.width / 2, currentY);
+    drawText(context, '“Recuerda, es solo un juego...”', canvas.width / 2, currentY, revealProgress, canvas.height);
     context.textAlign = "right";
     context.font = "italic 46px Georgia, serif";
-    context.fillText("— Legend", canvas.width - margin, currentY + 70);
+    drawText(context, "— Legend", canvas.width - margin, currentY + 70, revealProgress, canvas.height);
 
     context.textAlign = "center";
     context.fillStyle = "#70252c";
     context.font = "700 34px Georgia, serif";
-    context.fillText("MANTENÉ PRESIONADO SOBRE EL SELLO PARA PINTARLO", canvas.width / 2, canvas.height - 120);
+    drawText(context, "MANTENÉ PRESIONADO SOBRE EL SELLO PARA PINTARLO", canvas.width / 2, canvas.height - 120, revealProgress, canvas.height);
   } else {
     context.textAlign = "center";
     context.fillStyle = "rgba(79, 32, 36, 0.5)";
     context.font = "italic 42px Georgia, serif";
     context.fillText("La tinta espera una mano.", canvas.width / 2, canvas.height / 2);
   }
+
+}
+
+export function createLetterTexture(showContent, revealProgress = 1) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1536;
+  canvas.height = 2048;
+  drawLetterCanvas(canvas, showContent, revealProgress);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -131,4 +159,9 @@ export function createLetterTexture(showContent) {
   texture.anisotropy = 4;
   texture.needsUpdate = true;
   return texture;
+}
+
+export function updateLetterTexture(texture, showContent, revealProgress) {
+  drawLetterCanvas(texture.image, showContent, revealProgress);
+  texture.needsUpdate = true;
 }
