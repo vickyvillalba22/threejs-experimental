@@ -1,50 +1,55 @@
 "use client";
 
-import { LEGEND_FRAGMENT_PATHS } from "@/components/progress/legendPaths";
+import {
+  LEGEND_FRAGMENT_ACCENT_PATHS,
+  LEGEND_FRAGMENT_PATHS,
+} from "@/components/progress/legendPaths";
+import styles from "./ExperienceIntroduction.module.css";
 
 export default function ExperienceIntroduction({ onContinue }) {
   return (
     <section
-      className="experience-introduction"
+      className={styles.experienceIntroduction}
       aria-labelledby="experience-introduction-title"
     >
-      <div className="experience-introduction__atmosphere" aria-hidden="true" />
+      <div className={styles.atmosphere} aria-hidden="true" />
 
-      <div className="experience-introduction__content">
-        <p className="experience-introduction__eyebrow">CÓMO FUNCIONA LA EXPERIENCIA</p>
-        <h2 id="experience-introduction-title" className="experience-introduction__title">
+      <div className={styles.content}>
+        <p className={styles.eyebrow}>CÓMO FUNCIONA LA EXPERIENCIA</p>
+        <h2 id="experience-introduction-title" className={styles.title}>
           Reconstruye la figura de Legend
         </h2>
 
-        <div className="experience-introduction__demo" aria-hidden="true">
-          <div className="experience-introduction__object experience-introduction__object--one">✦</div>
-          <div className="experience-introduction__object experience-introduction__object--two">◇</div>
-          <div className="experience-introduction__object experience-introduction__object--three">✧</div>
-          <svg viewBox="0 0 106 168" className="experience-introduction__figure">
+        <div className={styles.demo} aria-hidden="true">
+          <div className={`${styles.object} ${styles.objectOne}`}>✦</div>
+          <div className={`${styles.object} ${styles.objectTwo}`}>◇</div>
+          <div className={`${styles.object} ${styles.objectThree}`}>✧</div>
+          <svg viewBox="0 0 160 260" className={styles.figure}>
             {LEGEND_FRAGMENT_PATHS.map((path, index) => (
-              <path
+              <g
                 key={path}
-                d={path}
-                pathLength="1"
-                className="experience-introduction__fragment"
+                className={styles.fragment}
                 style={{ animationDelay: `${700 + index * 260}ms` }}
-              />
+              >
+                <path className={styles.facets} d={path} />
+                <path className={styles.contour} d={LEGEND_FRAGMENT_ACCENT_PATHS[index]} />
+              </g>
             ))}
           </svg>
         </div>
 
-        <div className="experience-introduction__copy">
+        <div className={styles.copy}>
           <p>Explora las escenas y encuentra los objetos ocultos.</p>
           <p>Cada objeto correcto hará visible un fragmento de Legend.</p>
-          <p>Cuando la figura esté completa, sabrás quién es.</p>
+          <p>Cuando la figura esté completa, obtendrás tu premio.</p>
         </div>
 
-        <div className="experience-introduction__actions">
+        <div className={styles.actions}>
           <button type="button" onClick={onContinue}>
-            ABRIR LA INVITACIÓN
+            Continuar
           </button>
-          <button type="button" className="experience-introduction__skip" onClick={onContinue}>
-            SALTAR INTRODUCCIÓN
+          <button type="button" className={styles.skip} onClick={onContinue}>
+            Saltar introducción
           </button>
         </div>
       </div>

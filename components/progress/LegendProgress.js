@@ -2,26 +2,30 @@
 
 import { useMemo } from "react";
 import { LEGEND_FRAGMENT_COUNT, useProgress } from "@/hooks/useProgress";
-import { LEGEND_FRAGMENT_PATHS } from "@/components/progress/legendPaths";
+import {
+  LEGEND_FRAGMENT_ACCENT_PATHS,
+  LEGEND_FRAGMENT_PATHS,
+} from "@/components/progress/legendPaths";
 
 function Wireframe({ status, index }) {
   const isVisible = Boolean(status);
 
   return (
-    <path
-      d={LEGEND_FRAGMENT_PATHS[index]}
+    <g
       className={isVisible ? "legend-progress__fragment" : "legend-progress__guide"}
       style={
         isVisible
           ? {
               animationDelay: `${index * 70}ms`,
-              color: status === "incorrect" ? "#e04b58" : "#f2f2f2",
+               color: "#f2f2f2",
             }
           : undefined
       }
-      pathLength="1"
       aria-hidden="true"
-    />
+    >
+      <path className="legend-progress__facets" d={LEGEND_FRAGMENT_PATHS[index]} />
+      <path className="legend-progress__contour" d={LEGEND_FRAGMENT_ACCENT_PATHS[index]} />
+    </g>
   );
 }
 
@@ -44,7 +48,7 @@ export default function LegendProgress() {
       </div>
       <svg
         className="legend-progress__figure"
-        viewBox="0 0 106 168"
+        viewBox="0 0 160 260"
         role="img"
         aria-label={`${fragments.length} de ${LEGEND_FRAGMENT_COUNT} fragmentos revelados`}
       >

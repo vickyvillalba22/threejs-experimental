@@ -229,186 +229,6 @@
   animation: border-travel 2.8s linear infinite;
 }
 
-.experience-introduction {
-  position: fixed;
-  inset: 0;
-  z-index: 45;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  padding: 1.5rem;
-  background: #08080b;
-  color: var(--color-text);
-}
-
-.experience-introduction__atmosphere {
-  position: absolute;
-  inset: -20%;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(185, 190, 205, 0.12), transparent 22%),
-    radial-gradient(circle at 50% 60%, rgba(132, 30, 53, 0.15), transparent 48%);
-  animation: introduction-atmosphere 7s ease-in-out infinite alternate;
-}
-
-.experience-introduction__content {
-  position: relative;
-  z-index: 1;
-  width: min(100%, 40rem);
-  text-align: center;
-}
-
-.experience-introduction__eyebrow {
-  margin: 0;
-  color: var(--color-subtle);
-  font-size: 0.68rem;
-  letter-spacing: 0.18em;
-}
-
-.experience-introduction__title {
-  margin: 0.8rem auto 0;
-  max-width: 30rem;
-  font-family: var(--font-primary), Georgia, serif;
-  font-size: clamp(2rem, 6vw, 3.5rem);
-  font-weight: 400;
-  line-height: 0.95;
-}
-
-.experience-introduction__demo {
-  position: relative;
-  width: min(18rem, 68vw);
-  height: 14rem;
-  margin: 1rem auto 0;
-}
-
-.experience-introduction__figure {
-  position: absolute;
-  inset: 0;
-  width: 9rem;
-  height: 14rem;
-  margin: auto;
-  overflow: visible;
-}
-
-.experience-introduction__fragment {
-  fill: currentColor;
-  fill-opacity: 0.08;
-  stroke: rgba(242, 242, 242, 0.92);
-  stroke-width: 1.3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 1;
-  opacity: 0;
-  filter: drop-shadow(0 0 4px rgba(242, 242, 242, 0.8));
-  animation: introduction-fragment-reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.experience-introduction__object {
-  position: absolute;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid rgba(242, 242, 242, 0.6);
-  border-radius: 999px;
-  color: rgba(242, 242, 242, 0.9);
-  font-size: 1.2rem;
-  opacity: 0;
-  animation: introduction-object-arrival 5.2s ease-in-out infinite;
-}
-
-.experience-introduction__object--one {
-  top: 30%;
-  left: 8%;
-}
-
-.experience-introduction__object--two {
-  top: 16%;
-  right: 6%;
-  animation-delay: 1.2s;
-}
-
-.experience-introduction__object--three {
-  right: 13%;
-  bottom: 6%;
-  animation-delay: 2.5s;
-}
-
-.experience-introduction__copy {
-  color: var(--color-muted);
-  font-size: 0.95rem;
-  line-height: 1.45;
-}
-
-.experience-introduction__copy p {
-  margin: 0.25rem 0;
-}
-
-.experience-introduction__actions {
-  display: grid;
-  justify-items: center;
-  gap: 0.7rem;
-  margin-top: 1.4rem;
-}
-
-.experience-introduction__actions button {
-  border: 1px solid var(--color-text);
-  background: transparent;
-  padding: 0.8rem 1.2rem;
-  color: var(--color-text);
-  font-size: 0.72rem;
-  letter-spacing: 0.15em;
-  transition: background 180ms ease, color 180ms ease;
-}
-
-.experience-introduction__actions button:hover {
-  background: var(--color-text);
-  color: var(--color-background);
-}
-
-.experience-introduction__actions .experience-introduction__skip {
-  border: 0;
-  padding: 0.25rem;
-  color: var(--color-faint);
-  font-size: 0.62rem;
-}
-
-.experience-introduction__actions .experience-introduction__skip:hover {
-  background: transparent;
-  color: var(--color-text);
-}
-
-@keyframes introduction-fragment-reveal {
-  from {
-    stroke-dashoffset: 1;
-    opacity: 0;
-  }
-  to {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-}
-
-@keyframes introduction-object-arrival {
-  0%, 12% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.7);
-  }
-  28%, 62% {
-    opacity: 1;
-    transform: translate(2.8rem, 1rem) scale(1);
-  }
-  78%, 100% {
-    opacity: 0;
-    transform: translate(3.8rem, 1.5rem) scale(0.15);
-  }
-}
-
-@keyframes introduction-atmosphere {
-  from { transform: scale(0.98); opacity: 0.75; }
-  to { transform: scale(1.04); opacity: 1; }
-}
-
 .invitation-interactions {
   position: absolute;
   left: 1.5rem;
@@ -895,26 +715,45 @@
   overflow: visible;
 }
 
-.legend-progress__guide,
-.legend-progress__fragment {
-  fill: none;
+.legend-progress__facets,
+.legend-progress__contour {
+  fill: currentColor;
   stroke: currentColor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.legend-progress__contour {
+  fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .legend-progress__guide {
   color: rgba(237, 237, 237, 0.1);
-  stroke-width: 0.8;
+}
+
+.legend-progress__guide .legend-progress__facets {
+  fill-opacity: 0.025;
+  stroke-width: 0.45;
+}
+
+.legend-progress__guide .legend-progress__contour {
+  stroke-width: 0.9;
 }
 
 .legend-progress__fragment {
-  fill: currentColor;
-  fill-opacity: 0.08;
-  stroke-width: 1.35;
-  stroke-dasharray: 1;
   animation: legend-fragment-reveal 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
   filter: drop-shadow(0 0 3px currentColor);
+}
+
+.legend-progress__fragment .legend-progress__facets {
+  fill-opacity: 0.09;
+  stroke-width: 0.45;
+}
+
+.legend-progress__fragment .legend-progress__contour {
+  stroke-width: 0.95;
 }
 
 .legend-progress__caption {
@@ -928,11 +767,9 @@
 
 @keyframes legend-fragment-reveal {
   from {
-    stroke-dashoffset: 1;
-    opacity: 0;
+    opacity: 0.15;
   }
   to {
-    stroke-dashoffset: 0;
     opacity: 1;
   }
 }

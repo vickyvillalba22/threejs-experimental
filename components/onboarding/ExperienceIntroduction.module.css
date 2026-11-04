@@ -1,0 +1,196 @@
+.experienceIntroduction {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 1.5rem;
+  background: #08080b;
+  color: var(--color-text);
+}
+
+.atmosphere {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(185, 190, 205, 0.12), transparent 22%),
+    radial-gradient(circle at 50% 60%, rgba(242, 242, 242, 0.15), transparent 48%);
+  animation: introductionAtmosphere 7s ease-in-out infinite alternate;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 40rem);
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-subtle);
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+}
+
+.title {
+  margin: 0.8rem auto 0;
+  max-width: 30rem;
+  font-family: var(--font-primary), Georgia, serif;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 400;
+  line-height: 0.95;
+}
+
+.demo {
+  position: relative;
+  width: min(18rem, 68vw);
+  height: 14rem;
+  margin: 1rem auto 0;
+}
+
+.figure {
+  position: absolute;
+  inset: 0;
+  width: 9rem;
+  height: 14rem;
+  margin: auto;
+  overflow: visible;
+}
+
+.fragment {
+  color: #f2f2f2;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px rgba(242, 242, 242, 0.8));
+  animation: introductionFragmentReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.facets {
+  fill: currentColor;
+  fill-opacity: 0.12;
+  stroke: currentColor;
+  stroke-width: 0.42;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.contour {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.object {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(242, 242, 242, 0.6);
+  border-radius: 999px;
+  color: rgba(242, 242, 242, 0.9);
+  font-size: 1.2rem;
+  opacity: 0;
+  animation: introductionObjectArrival 5.2s ease-in-out infinite;
+}
+
+.objectOne {
+  top: 30%;
+  left: 8%;
+}
+
+.objectTwo {
+  top: 16%;
+  right: 6%;
+  animation-delay: 1.2s;
+}
+
+.objectThree {
+  right: 13%;
+  bottom: 6%;
+  animation-delay: 2.5s;
+}
+
+.copy {
+  color: var(--color-muted);
+  font-size: 1.3rem;
+  line-height: 1.45;
+}
+
+.copy p {
+  margin: 0.2rem 0;
+}
+
+.actions {
+  display: grid;
+  justify-items: center;
+  gap: 0.7rem;
+  margin-top: 1.4rem;
+}
+
+.actions button {
+  border: 1px solid rgba(242, 242, 242, 0.48);
+  border-radius: 16px;
+  background: transparent;
+  padding: 0.5rem 1.2rem;
+  color: var(--color-text);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  transition: background 180ms ease, color 180ms ease;
+}
+
+.actions button:hover {
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+.actions .skip {
+  border: 0;
+  background: transparent;
+  padding: 0.25rem;
+  color: var(--color-faint);
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.actions .skip:hover {
+  background: transparent;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.5rem;
+}
+
+@keyframes introductionFragmentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes introductionObjectArrival {
+  0%, 12% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.7);
+  }
+  28%, 62% {
+    opacity: 1;
+    transform: translate(2.8rem, 1rem) scale(1);
+  }
+  78%, 100% {
+    opacity: 0;
+    transform: translate(3.8rem, 1.5rem) scale(0.15);
+  }
+}
+
+@keyframes introductionAtmosphere {
+  from { transform: scale(0.98); opacity: 0.75; }
+  to { transform: scale(1.04); opacity: 1; }
+}
