@@ -8,6 +8,7 @@ import { useProgress } from "@/hooks/useProgress";
 export default function TiendaExperience({ title, description }) {
   const router = useRouter();
   const [hasFoundMask, setHasFoundMask] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [phase, setPhase] = useState("shop");
   const [secret, setSecret] = useState("");
   const [riddleAnswer, setRiddleAnswer] = useState("");
@@ -17,7 +18,12 @@ export default function TiendaExperience({ title, description }) {
 
   function handleGlassClick() {
     setHasFoundMask(true);
-    setMessage("La máscara aparece dentro del frasco. Para tomarla, debes pagar.");
+    setMessage("");
+  }
+
+  function handleGetFragment() {
+    setIsPaymentOpen(true);
+    setMessage("");
   }
 
   function payWithSecret(event) {
@@ -64,7 +70,10 @@ export default function TiendaExperience({ title, description }) {
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-app-background text-app-text">
-      <header className="pointer-events-none absolute inset-x-4 top-6 z-10 mx-auto max-w-3xl text-center sm:top-8">
+      <header
+        className={`pointer-events-none absolute inset-x-4 top-6 z-10 mx-auto max-w-3xl text-center transition-[opacity,filter] duration-500 sm:top-8 ${hasFoundMask ? "opacity-0 blur-sm" : ""}`}
+        aria-hidden={hasFoundMask}
+      >
         <h1 className="font-app-display text-4xl text-app-text sm:text-5xl">{title}</h1>
         <p className="mt-4 text-[24px] leading-relaxed text-app-muted">{description}</p>
       </header>
@@ -79,38 +88,50 @@ export default function TiendaExperience({ title, description }) {
           className="absolute inset-x-4 bottom-6 z-10 mx-auto max-w-md rounded-2xl border border-white/25 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-md sm:bottom-8 sm:p-6"
           aria-label="Máscara veneciana"
         >
-          <p className="object-modal-copy mt-3 leading-relaxed text-app-text">
-            La máscara está al alcance de tu mano, pero la tienda exige un pago antes de entregártela.
-          </p>
-          <form className="mt-5 grid gap-3" onSubmit={payWithSecret}>
-            <label className="text-left text-xs text-app-subtle" htmlFor="legend-secret">
-              Pagar con un secreto sincero
-            </label>
-            <input
-              id="legend-secret"
-              value={secret}
-              onChange={(event) => setSecret(event.target.value)}
-              className="border border-app-border bg-black/50 px-4 py-3 text-sm text-app-text outline-none focus:border-app-accent"
-              placeholder="Escribe un secreto"
-            />
-            <button
-              type="button"
-              className="border border-app-border bg-app-surface px-4 py-3 text-sm text-app-text transition-colors hover:border-app-accent hover:text-app-accent focus-visible:outline-2 focus-visible:outline-app-text focus-visible:outline-offset-2"
-              onClick={() => {
-                const form = document.getElementById("legend-secret");
-                form?.form?.requestSubmit();
-              }}
-            >
-              Pagar con un secreto sincero
-            </button>
-            <button
-              type="button"
-              className="border border-app-border bg-app-surface px-4 py-3 text-sm text-app-text transition-colors hover:border-app-accent hover:text-app-accent focus-visible:outline-2 focus-visible:outline-app-text focus-visible:outline-offset-2"
-              onClick={payWithAurio}
-            >
-              Pagar con Aurio — alterar el fragmento
-            </button>
-          </form>
+          {!isPaymentOpen ? (
+            <>
+              <p className="text-xs tracking-[0.16em] text-app-subtle">FRAGMENTO CONSEGUIDO</p>
+              <p className="mt-3 font-app-display text-3xl text-app-text">La Máscara Veneciana</p>
+              <p className="mt-2 text-[1.5rem] leading-relaxed text-app-text">
+                Representa que tras las capas del Gran Maestro existe una herida del pasado que la magia jamás pudo congelar del todo.
+              </p>
+              <button
+                type="button"
+                className="mt-5 w-fit border rounded-md border-app-border bg-app-surface px-4 py-3 text-base text-app-text transition-colors hover:border-app-accent hover:text-app-accent focus-visible:outline-2 focus-visible:outline-app-text focus-visible:outline-offset-2"
+                onClick={handleGetFragment}
+              >
+                Conseguir fragmento
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mt-3 text-[1.5rem] leading-relaxed text-app-text">
+                La máscara está al alcance de tu mano, pero la tienda exige un pago antes de entregártela.
+              </p>
+              <form className="mt-5 gap-3 flex flex-col" onSubmit={payWithSecret}>
+                <label className="text-left text-md text-app-subtle" htmlFor="legend-secret">
+                  Pagar con un secreto sincero
+                </label>
+                <input
+                  id="legend-secret"
+                  value={secret}
+                  onChange={(event) => setSecret(event.target.value)}
+                  className="border border-app-border bg-black/50 px-4 py-3 text-md text-app-text outline-none focus:border-app-accent rounded-md"
+                  placeholder="Escribe un secreto"
+                />
+                <button
+                  type="button"
+                  className="border rounded-md border-app-border bg-app-surface px-4 py-3 text-base text-app-text transition-colors hover:border-app-accent hover:text-app-accent focus-visible:outline-2 focus-visible:outline-app-text focus-visible:outline-offset-2 w-fit self-center"
+                  onClick={() => {
+                    const form = document.getElementById("legend-secret");
+                    form?.form?.requestSubmit();
+                  }}
+                >
+                  Pagar
+                </button>
+              </form>
+            </>
+          )}
           {message && <p className="mt-3 text-xs text-app-subtle" aria-live="polite">{message}</p>}
         </section>
       )}

@@ -96,7 +96,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
                 </span>
               </span>
             )
-            : "La llave apareció. Hacé click sobre ella para entrar a Caraval."
+            : null
           : "Elije la puerta correcta para llegar a Caraval"}
       </p>
 

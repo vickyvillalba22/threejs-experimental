@@ -66,10 +66,10 @@ export default function EscenaDinamica({ params }) {
       ) : null}
 
       <div className={chapterId === 'hub'
-        ? 'absolute left-6 top-28 z-20 max-w-xs sm:left-8'
+        ? 'pointer-events-none absolute left-6 top-28 z-20 max-w-xs sm:left-8'
         : 'mt-8 flex flex-wrap gap-4'}>
         {chapterId === 'hub' && (
-          <div>
+          <div className={`transition-[opacity,filter] duration-500 ${isRoseRevealed ? 'opacity-0 blur-sm' : ''}`}>
             <h1 className="font-app-display text-5xl text-app-text sm:text-6xl">{chapterData.title}</h1>
             <p className="mt-5 max-w-md font-app-body text-[24px] leading-relaxed text-app-muted">
               {chapterData.description}
@@ -87,16 +87,16 @@ export default function EscenaDinamica({ params }) {
               className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/25 bg-black/65 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-sm sm:p-6"
               aria-label="Rosa descubierta"
             >
-              <p className="font-app-display text-3xl text-app-text">La rosa ha aparecido</p>
-              <p className="mt-4 text-sm leading-relaxed text-app-muted">
-                El arco ha hecho crecer una rosa entre sus líneas. Su fragmento ya forma parte de la figura de Legend.
+              <p className="font-app-display text-3xl text-app-text">La Rosa de Cristal</p>
+              <p className="mt-4 text-[1.5rem] leading-relaxed text-app-muted">
+                Representa que tras las capas del Gran Maestro existe una herida del pasado que la magia jamás pudo congelar del todo.
               </p>
               <button
                 type="button"
-                className="mt-5 w-full rounded-xl border border-white/40 px-4 py-3 text-xs tracking-[0.16em] text-app-text transition-colors hover:bg-white hover:text-black"
+                className="mt-5 w-full rounded-xl border border-white/40 px-4 py-3 text-base tracking-[0.16em] text-app-text transition-colors hover:bg-white hover:text-black"
                 onClick={() => router.push('/archivo/tienda')}
               >
-                CONTINUAR A LA TIENDA
+                Continuar
               </button>
             </section>
           </div>

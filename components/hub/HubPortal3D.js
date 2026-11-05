@@ -6,6 +6,14 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 const MODEL_URL = "/models/puerta-hub-1.glb";
 const AWAKENING_DURATION = 2400;
+const PORTAL_VERTICAL_OFFSET = -0.35;
+const ROSE_CENTER_DURATION = 1100;
+const ROSE_CENTER_DISTANCE = 4.6;
+const ROSE_CENTER_SCALE = 1;
+const ROSE_CENTER_OFFSET_X = -0.35;
+const ROSE_CENTER_OFFSET_Y = -0.35;
+const ROSE_FOCUS_DURATION = 650;
+const ROSE_FOCUS_VEIL_OPACITY = 0.42;
 
 function createGlowMaterial() {
   return new THREE.ShaderMaterial({
@@ -254,6 +262,8 @@ export default function HubPortal3D({ onAwaken }) {
   const containerRef = useRef(null);
   const holdTimerRef = useRef(null);
   const awakenedRef = useRef(false);
+  const roseCenterReachedRef = useRef(false);
+  const roseInteractionRef = useRef(null);
   const onAwakenRef = useRef(onAwaken);
   const chargeTargetRef = useRef(0);
   const burstStartRef = useRef(null);
@@ -274,9 +284,6 @@ export default function HubPortal3D({ onAwaken }) {
     setIsCharging(false);
     setIsAwakened(true);
     window.clearTimeout(holdTimerRef.current);
-    holdTimerRef.current = window.setTimeout(() => {
-      onAwakenRef.current?.();
-    }, 820);
   }
 
   function beginAwakening(event) {
@@ -321,6 +328,9 @@ export default function HubPortal3D({ onAwaken }) {
     container.appendChild(renderer.domElement);
 
     const portal = new THREE.Group();
+    // Bajamos el conjunto completo para mantener alineados el arco, la rosa,
+    // las partículas y los efectos visuales.
+    portal.position.y = PORTAL_VERTICAL_OFFSET;
     scene.add(portal);
 
     const ambientLight = new THREE.HemisphereLight("#eeeeee", "#111111", 2.7);
@@ -353,15 +363,31 @@ export default function HubPortal3D({ onAwaken }) {
     burst.renderOrder = 3;
     portal.add(burst);
 
+    const focusVeil = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.MeshBasicMaterial({
+        color: "#050509",
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        depthTest: false,
+      }),
+    );
+    focusVeil.position.set(0, 0, 2.2);
+    focusVeil.renderOrder = 3.5;
+    portal.add(focusVeil);
+
     const farParticles = createParticles();
     farParticles.material.uniforms.uSize.value = 0.032;
     farParticles.material.uniforms.uOpacity.value = 0.42;
+    farParticles.position.y = -PORTAL_VERTICAL_OFFSET;
     farParticles.position.z = -0.8;
     portal.add(farParticles);
 
     const nearParticles = createParticles();
     nearParticles.material.uniforms.uSize.value = 0.065;
     nearParticles.material.uniforms.uOpacity.value = 0.78;
+    nearParticles.position.y = -PORTAL_VERTICAL_OFFSET;
     nearParticles.position.z = 0.35;
     portal.add(nearParticles);
 
@@ -378,9 +404,76 @@ export default function HubPortal3D({ onAwaken }) {
     let roseRevealMax = 1;
     let roseMaterials = [];
     const roseRevealUniform = { value: 0 };
+    const backgroundFocusUniform = { value: 0 };
     let edgeMaterials = [];
     let particleTime = 0;
     let chargeProgress = 0;
+    let roseCenterStartAt = null;
+    let roseFocusStartAt = null;
+    let roseCenterStartPosition = null;
+    let roseCenterTargetPosition = null;
+    let roseCenterStartScale = null;
+    let roseCenterTargetScale = null;
+    let roseMaterialsRestored = false;
+
+    function restoreRoseMaterials() {
+      if (roseMaterialsRestored) return;
+      roseMaterialsRestored = true;
+
+      roseMaterials.forEach((material) => {
+        const originalState = material.userData.roseOriginalState;
+        material.onBeforeCompile = originalState.onBeforeCompile;
+        // Mantenerla en la cola transparente permite que el velo del fondo
+        // quede detrás de la rosa, sin alterar su color ni su textura.
+        material.transparent = true;
+        material.color.copy(originalState.color);
+        material.map = originalState.map;
+        material.normalMap = originalState.normalMap;
+        material.opacity = originalState.opacity;
+        material.depthWrite = false;
+        material.depthTest = false;
+        material.needsUpdate = true;
+      });
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    roseInteractionRef.current = (event) => {
+      if (!rose || roseCenterStartAt !== null) return;
+      if (roseRevealUniform.value < 0.999) return;
+
+      const hasPointerPosition = Number.isFinite(event?.clientX) && Number.isFinite(event?.clientY);
+      if (hasPointerPosition) {
+        const bounds = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+        pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+        camera.updateMatrixWorld();
+        rose.updateWorldMatrix(true, true);
+        raycaster.setFromCamera(pointer, camera);
+
+        if (raycaster.intersectObject(rose, true).length === 0) return;
+      }
+
+      roseCenterStartAt = performance.now();
+      roseCenterStartPosition = rose.position.clone();
+      roseCenterTargetPosition = new THREE.Vector3(
+        ROSE_CENTER_OFFSET_X,
+        camera.position.y + ROSE_CENTER_OFFSET_Y,
+        camera.position.z - ROSE_CENTER_DISTANCE,
+      );
+      portal.worldToLocal(roseCenterTargetPosition);
+      roseCenterStartScale = rose.scale.clone();
+      roseCenterTargetScale = rose.scale.clone().multiplyScalar(ROSE_CENTER_SCALE);
+    };
+
+    const handleCanvasPointerDown = (event) => {
+      if (!awakenedRef.current) return;
+      event.stopPropagation();
+      roseInteractionRef.current?.(event);
+    };
+
+    renderer.domElement.addEventListener("pointerdown", handleCanvasPointerDown);
 
     const loader = new GLTFLoader();
     loader.load(
@@ -421,12 +514,17 @@ export default function HubPortal3D({ onAwaken }) {
             object.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
           }
           object.material.onBeforeCompile = (shader) => {
-            shader.fragmentShader = shader.fragmentShader.replace(
+            shader.uniforms.uBackgroundFocus = backgroundFocusUniform;
+            shader.fragmentShader = `
+              uniform float uBackgroundFocus;
+              ${shader.fragmentShader}
+            `.replace(
               "#include <map_fragment>",
               `#include <map_fragment>
               float stoneLuminance = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
               stoneLuminance = pow(max(stoneLuminance, 0.001), 0.72);
-              diffuseColor.rgb = vec3(stoneLuminance);`,
+              diffuseColor.rgb = vec3(stoneLuminance);
+              diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.10, 0.10, 0.12), uBackgroundFocus * 0.62);`,
             );
           };
           object.material.needsUpdate = true;
@@ -467,7 +565,8 @@ export default function HubPortal3D({ onAwaken }) {
         roseScale = desiredHeight / Math.max(size.y, 0.001);
         rose.scale.setScalar(roseScale);
         rose.position.y = -0.08;
-        rose.position.z = 0.72;
+        // La rosa debe quedar por delante de la piedra cuando empieza a aparecer.
+        rose.position.z = 1.2;
         roseRevealMin = (bounds.min.y - center.y) * roseScale + rose.position.y;
         roseRevealMax = (bounds.max.y - center.y) * roseScale + rose.position.y;
 
@@ -486,9 +585,24 @@ export default function HubPortal3D({ onAwaken }) {
             ? object.material
             : [object.material];
           materials.forEach((material) => {
+            material.userData.roseOriginalState = {
+              onBeforeCompile: material.onBeforeCompile,
+              color: material.color.clone(),
+              map: material.map,
+              normalMap: material.normalMap,
+              transparent: material.transparent,
+              opacity: material.opacity,
+              depthWrite: material.depthWrite,
+              depthTest: material.depthTest,
+            };
             material.transparent = true;
             material.opacity = 1;
             material.depthWrite = false;
+            material.depthTest = false;
+            if (material.map) {
+              material.map.colorSpace = THREE.SRGBColorSpace;
+              material.map.needsUpdate = true;
+            }
             material.needsUpdate = true;
             material.onBeforeCompile = (shader) => {
               shader.uniforms.uRoseReveal = roseRevealUniform;
@@ -575,7 +689,31 @@ export default function HubPortal3D({ onAwaken }) {
       if (rose) {
         roseRevealUniform.value = roseProgress;
         rose.rotation.y = Math.sin(particleTime * 0.7) * 0.035;
+
+        if (roseCenterStartAt !== null) {
+          const centerProgress = Math.min(
+            (performance.now() - roseCenterStartAt) / ROSE_CENTER_DURATION,
+            1,
+          );
+          const centerEase = 1 - (1 - centerProgress) ** 3;
+          rose.position.lerpVectors(roseCenterStartPosition, roseCenterTargetPosition, centerEase);
+          rose.scale.lerpVectors(roseCenterStartScale, roseCenterTargetScale, centerEase);
+
+          if (centerProgress >= 1 && !roseCenterReachedRef.current) {
+            roseCenterReachedRef.current = true;
+            roseFocusStartAt = performance.now();
+            restoreRoseMaterials();
+            onAwakenRef.current?.();
+          }
+        }
       }
+
+      const roseFocusProgress = roseFocusStartAt === null
+        ? 0
+        : Math.min((performance.now() - roseFocusStartAt) / ROSE_FOCUS_DURATION, 1);
+      const roseFocusEase = 1 - (1 - roseFocusProgress) ** 3;
+      backgroundFocusUniform.value = roseFocusEase;
+      focusVeil.material.opacity = roseFocusEase * ROSE_FOCUS_VEIL_OPACITY;
 
       farParticles.material.uniforms.uTime.value = particleTime;
       nearParticles.material.uniforms.uTime.value = particleTime + 1.8;
@@ -587,7 +725,8 @@ export default function HubPortal3D({ onAwaken }) {
       burstMaterial.uniforms.uProgress.value = burstProgress;
       burstMaterial.uniforms.uOpacity.value = burstProgress > 0 ? 1 : 0;
       edgeMaterials.forEach((material) => {
-        material.uniforms.edgeOpacity.value = 0.8 + chargeProgress * 0.8 + (1 - burstProgress) * 0.4;
+        material.uniforms.edgeOpacity.value =
+          (0.8 + chargeProgress * 0.8 + (1 - burstProgress) * 0.4) * (1 - roseFocusEase * 0.65);
       });
       fogBack.material.uniforms.uTime.value = particleTime;
       fogFront.material.uniforms.uTime.value = particleTime + 2.4;
@@ -603,6 +742,8 @@ export default function HubPortal3D({ onAwaken }) {
 
     return () => {
       disposed = true;
+      roseInteractionRef.current = null;
+      renderer.domElement.removeEventListener("pointerdown", handleCanvasPointerDown);
       window.cancelAnimationFrame(animationFrame);
       window.clearTimeout(holdTimerRef.current);
       holdStartRef.current = null;
@@ -635,11 +776,17 @@ export default function HubPortal3D({ onAwaken }) {
       onPointerDown={beginAwakening}
       onPointerUp={cancelAwakening}
       onPointerCancel={cancelAwakening}
-      onPointerLeave={cancelAwakening}
+      onPointerLeave={(event) => {
+        cancelAwakening(event);
+      }}
       onKeyDown={(event) => {
         if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
           event.preventDefault();
-          beginAwakening(event);
+          if (awakenedRef.current) {
+            roseInteractionRef.current?.(event);
+          } else {
+            beginAwakening(event);
+          }
         }
       }}
       onKeyUp={(event) => {

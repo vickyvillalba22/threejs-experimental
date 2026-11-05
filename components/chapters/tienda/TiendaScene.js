@@ -5,6 +5,10 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
+const MASK_REVEAL_DURATION = 1000;
+const MASK_REVEAL_SCALE = 3;
+const MASK_REVEAL_VERTICAL_OFFSET = 0.75;
+
 export default function TiendaScene({ onMaskClick, onClockHourChange, showPocketWatch = false }) {
   const containerRef = useRef(null);
   const onMaskClickRef = useRef(onMaskClick);
@@ -34,6 +38,7 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
 
     const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
     camera.position.set(0, 0, 7);
+    const cameraTarget = new THREE.Vector3();
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.sortObjects = true;
@@ -184,6 +189,10 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
     const maskFillLight = new THREE.PointLight("#fff1d2", 55, 3.5, 2);
     maskFillLight.position.set(0, 0.1, 0.35);
 
+    const maskRevealLight = new THREE.DirectionalLight("#fff4dc", 4.5);
+    maskRevealLight.position.set(-3, 3, 4);
+    maskRevealLight.visible = false;
+
     const innerGlow = new THREE.Mesh(
       new THREE.SphereGeometry(0.06, 16, 16),
       new THREE.MeshBasicMaterial({ color: "#ffaa00", toneMapped: false }),
@@ -199,6 +208,8 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       innerLight,
       innerGlow,
       maskFillLight,
+      maskRevealLight,
+      maskRevealLight.target,
     );
 
     const bottle = new THREE.Group();
@@ -208,10 +219,53 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
 
     let isDisposed = false;
     let maskObject = null;
+    const maskMaterialSnapshots = [];
+    const maskRevealStartPosition = new THREE.Vector3();
+    const maskRevealTargetPosition = new THREE.Vector3();
+    const maskRevealStartScale = new THREE.Vector3();
+    const maskRevealTargetScale = new THREE.Vector3();
+    let maskRevealStartedAt = null;
+    let isMaskRevealed = false;
+    let isMaskRevealAnimating = false;
+    let isMaskRevealAppearanceReady = false;
     let pocketWatchBounds = null;
     let clockHandsCenter = null;
     let hourHand = null;
     let minuteHand = null;
+
+    function restoreMaskMaterials() {
+      maskMaterialSnapshots.forEach(({ material, snapshot }) => {
+        if (snapshot.color && material.color) material.color.copy(snapshot.color);
+        if (snapshot.emissive && material.emissive) material.emissive.copy(snapshot.emissive);
+        material.map = snapshot.map;
+        material.normalMap = snapshot.normalMap;
+        material.roughnessMap = snapshot.roughnessMap;
+        material.metalnessMap = snapshot.metalnessMap;
+        material.emissiveMap = snapshot.emissiveMap;
+        material.opacity = snapshot.opacity;
+        material.transparent = snapshot.transparent;
+        material.transmission = snapshot.transmission;
+        material.thickness = snapshot.thickness;
+        material.ior = snapshot.ior;
+        material.needsUpdate = true;
+      });
+    }
+
+    function startMaskReveal() {
+      if (!maskObject || isMaskRevealed) return;
+
+      isMaskRevealed = true;
+      if (maskObject.parent === bottle) scene.attach(maskObject);
+      maskRevealStartPosition.copy(maskObject.position);
+      maskRevealTargetPosition.copy(cameraTarget);
+      maskRevealTargetPosition.y += MASK_REVEAL_VERTICAL_OFFSET;
+      maskRevealLight.target.position.copy(maskRevealTargetPosition);
+      maskRevealStartScale.copy(maskObject.scale);
+      maskRevealTargetScale.copy(maskObject.scale).multiplyScalar(MASK_REVEAL_SCALE);
+      maskRevealStartedAt = performance.now();
+      isMaskRevealAnimating = true;
+    }
+
     const maskLoader = new GLTFLoader();
     maskLoader.load(
       "/models/main%20objects/venetian_mask_1.glb",
@@ -254,14 +308,31 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
           object.receiveShadow = false;
           object.renderOrder = 2;
 
-          const materials = Array.isArray(object.material)
-            ? object.material
-            : [object.material];
-          materials.forEach((material) => {
-            if (!material) return;
-            material.depthTest = true;
-            material.depthWrite = true;
-            material.needsUpdate = true;
+           const materials = Array.isArray(object.material)
+             ? object.material
+             : [object.material];
+           materials.forEach((material) => {
+             if (!material) return;
+             maskMaterialSnapshots.push({
+               material,
+               snapshot: {
+                 color: material.color?.clone(),
+                 emissive: material.emissive?.clone(),
+                 map: material.map,
+                 normalMap: material.normalMap,
+                 roughnessMap: material.roughnessMap,
+                 metalnessMap: material.metalnessMap,
+                 emissiveMap: material.emissiveMap,
+                 opacity: material.opacity,
+                 transparent: material.transparent,
+                 transmission: material.transmission,
+                 thickness: material.thickness,
+                 ior: material.ior,
+               },
+             });
+             material.depthTest = true;
+             material.depthWrite = true;
+             material.needsUpdate = true;
           });
         });
 
@@ -841,6 +912,7 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       if (isBottleLifted && isMaskPointerDown) {
         updatePointer(event);
         if (maskObject && raycaster.intersectObject(maskObject, true).length > 0) {
+          startMaskReveal();
           onMaskClickRef.current?.();
         }
       }
@@ -904,8 +976,45 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
         bottleCenter.y,
         Math.max(distanceForHeight, distanceForWidth),
       );
-      camera.lookAt(stageCenter.x, bottleCenter.y, bottleCenter.z);
+      cameraTarget.set(stageCenter.x, bottleCenter.y, bottleCenter.z);
+      camera.lookAt(cameraTarget);
+      maskRevealTargetPosition.copy(cameraTarget);
+      maskRevealTargetPosition.y += MASK_REVEAL_VERTICAL_OFFSET;
+      maskRevealLight.target.position.copy(maskRevealTargetPosition);
+      if (isMaskRevealed && !isMaskRevealAnimating && maskObject) {
+        maskObject.position.copy(maskRevealTargetPosition);
+      }
       renderer.setSize(width, height, false);
+    }
+
+    function updateMaskReveal(time) {
+      if (!maskObject || !isMaskRevealAnimating || maskRevealStartedAt === null) return;
+
+      const progress = THREE.MathUtils.clamp(
+        (time - maskRevealStartedAt) / MASK_REVEAL_DURATION,
+        0,
+        1,
+      );
+      const easedProgress = 1 - (1 - progress) ** 3;
+      maskObject.position.lerpVectors(
+        maskRevealStartPosition,
+        maskRevealTargetPosition,
+        easedProgress,
+      );
+      maskObject.scale.lerpVectors(
+        maskRevealStartScale,
+        maskRevealTargetScale,
+        easedProgress,
+      );
+
+      if (progress >= 1) {
+        maskObject.position.copy(maskRevealTargetPosition);
+        maskObject.scale.copy(maskRevealTargetScale);
+        restoreMaskMaterials();
+        isMaskRevealAppearanceReady = true;
+        isMaskRevealAnimating = false;
+        maskRevealStartedAt = null;
+      }
     }
 
     function updateBottleFade(time) {
@@ -938,12 +1047,13 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       });
       pedestal.visible = isShopPhase;
       groundFog.visible = isShopPhase;
-      inspectionBeam.visible = isShopPhase;
+      inspectionBeam.visible = isShopPhase && !isMaskRevealAppearanceReady;
       beamParticles.visible = isShopPhase;
       magicParticles.visible = isShopPhase;
-      inspectionLight.visible = isShopPhase;
-      innerLight.visible = isShopPhase;
-      maskFillLight.visible = isShopPhase;
+      inspectionLight.visible = isShopPhase && !isMaskRevealAppearanceReady;
+      innerLight.visible = isShopPhase && !isMaskRevealAppearanceReady;
+      maskFillLight.visible = isShopPhase && !isMaskRevealAppearanceReady;
+      maskRevealLight.visible = isShopPhase && isMaskRevealAppearanceReady;
       if (maskObject) maskObject.visible = isShopPhase;
 
       pocketWatch.visible = isClockPhase;
@@ -962,6 +1072,7 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
         beamParticles.rotation.y = time * 0.00008;
         updateMagicParticles(time * 0.001);
         updateBottleFade(time);
+        updateMaskReveal(time);
         shelfPieces.forEach(({ mesh, baseY, phase }) => {
           mesh.position.y = baseY + 0.05 + Math.sin(time * 0.0011 + phase) * 0.03;
         });

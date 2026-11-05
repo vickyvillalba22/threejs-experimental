@@ -4,7 +4,7 @@ export const chapters = {
     id: "hub",
     title: "Las Puertas de Caraval",
     description: "Bienvenido a la Isla de los Sueños. El aire pesa con la promesa de la magia y la sombra de un juego imponente.",
-    instructions: "Mantén presionado el arco de entrada para despertarlo y revelar la rosa.",
+    instructions: "Mantén presionado el arco de entrada para despertarlo y revelar lo que esconde.",
     // Aquí el botón apuntará a: router.push('/escena/tienda')
   },
 
