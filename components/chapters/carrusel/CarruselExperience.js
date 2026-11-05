@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@/hooks/useProgress";
 import CarruselScene from "@/components/chapters/carrusel/CarruselScene";
+import styles from "@/components/chapters/carrusel/CarruselExperience.module.css";
 
 const CARD_VALUES = [1, 2, 3, 4, 5, 6, 7];
 const CARD_PIP_POSITIONS = {
@@ -59,10 +60,14 @@ export default function CarruselExperience({ title, description, instructions })
 
     if (nextOrder.every((value, index) => value === index + 1)) {
       collectArtifact({ artifactId: "baraja-de-cartas", result: "correct" });
-      router.push("/archivo/sombrero");
+      setPhase("card-reveal");
     } else {
       setMessage("Sigue ordenando las cartas de menor a mayor.");
     }
+  }
+
+  function continueToHat() {
+    router.push("/archivo/sombrero");
   }
 
   function handleCardDragStart(event, value) {
@@ -77,22 +82,26 @@ export default function CarruselExperience({ title, description, instructions })
   }
 
   return (
-    <main className="carousel-experience">
-      <CarruselScene onCardFound={findCard} />
-      <section className="carousel-experience__panel">
+    <main className={styles.experience}>
+      <CarruselScene
+        onCardFound={findCard}
+        isCardReveal={phase === "card-reveal"}
+        showDeck={phase === "fragment"}
+        onCardRevealComplete={() => setPhase("fragment")}
+      />
+      {phase !== "fragment" && phase !== "card-reveal" && (
+        <section className={styles.panel}>
         {phase === "search" && (
           <>
-            <p className="carousel-experience__eyebrow">EL CARRUSEL MÁGICO</p>
             <h1>{title}</h1>
-            <p className="carousel-experience__copy carousel-experience__chapter-copy">{description}</p>
-            <p className="carousel-experience__copy carousel-experience__chapter-copy">{instructions}</p>
-            <div className="carousel-cards" aria-label="Cartas escondidas">
+            <p className={`${styles.copy} ${styles.chapterCopy}`}>{description}</p>
+            <p className={`${styles.copy} ${styles.chapterCopy}`}>{instructions}</p>
+            <div className={styles.cards} aria-label="Cartas escondidas">
               {foundCards.map((value) => (
                 <button
                   key={value}
                   type="button"
-                  className="is-found"
-                  onClick={() => findCard(value)}
+                  className={styles.found}
                   disabled
                 >
                   ✓ {value}
@@ -102,13 +111,14 @@ export default function CarruselExperience({ title, description, instructions })
                 <button
                   key={value}
                   type="button"
-                  onClick={() => findCard(value)}
+                  disabled
+                  className="rounded-md"
                 >
                   ?
                 </button>
               ))}
             </div>
-            <p className="carousel-experience__status" aria-live="polite">
+            <p className={styles.status} aria-live="polite">
               {foundCards.length} / 7 cartas encontradas
             </p>
           </>
@@ -116,17 +126,17 @@ export default function CarruselExperience({ title, description, instructions })
 
         {phase === "order" && (
           <>
-            <p className="carousel-experience__eyebrow">LA BARAJA HA SIDO REVELADA</p>
+            <p className={styles.eyebrow}>LA BARAJA HA SIDO REVELADA</p>
             <h1>{title}</h1>
-            <p className="carousel-experience__copy carousel-experience__chapter-copy">{description}</p>
-            <p className="carousel-experience__copy carousel-experience__chapter-copy">{instructions}</p>
-            <div className="carousel-cards carousel-cards--order" aria-label="Orden de las cartas">
+            <p className={`${styles.copy} ${styles.chapterCopy}`}>{description}</p>
+            <p className={`${styles.copy} ${styles.chapterCopy}`}>{instructions}</p>
+            <div className={`${styles.cards} ${styles.cardsOrder}`} aria-label="Orden de las cartas">
               {orderedCards.map((value) => (
                 <button
                   key={value}
                   type="button"
                   draggable
-                  className={`carousel-order-card ${draggedValue === value ? "is-dragging" : ""} ${dragOverValue === value ? "is-drag-target" : ""}`}
+                  className={`${styles.orderCard} ${draggedValue === value ? styles.isDragging : ""} ${dragOverValue === value ? styles.isDragTarget : ""}`}
                   onDragStart={(event) => handleCardDragStart(event, value)}
                   onDragOver={(event) => {
                     event.preventDefault();
@@ -136,28 +146,51 @@ export default function CarruselExperience({ title, description, instructions })
                   onDragEnd={handleCardDragEnd}
                   aria-label={`Carta ${value}. Arrástrala para cambiar su posición.`}
                 >
-                  <span className="carousel-order-card__rank">{value}</span>
-                  <span className="carousel-order-card__pips" aria-hidden="true">
+                  <span className={styles.orderRank}>{value}</span>
+                  <span className={styles.orderPips} aria-hidden="true">
                     {CARD_PIP_POSITIONS[value].map(([row, column], pipIndex) => (
                       <span
                         key={`${value}-${pipIndex}`}
-                        className="carousel-order-card__pip"
+                        className={styles.orderPip}
                         style={{ gridRow: row, gridColumn: column }}
                       >
                         ♥
                       </span>
                     ))}
                   </span>
-                  <span className="carousel-order-card__rank carousel-order-card__rank--bottom">{value}</span>
+                  <span className={`${styles.orderRank} ${styles.orderRankBottom}`}>{value}</span>
                 </button>
               ))}
             </div>
-            <p className="carousel-experience__status" aria-live="polite">Arrastra y suelta cada carta en su lugar.</p>
-            {message && <p className="carousel-experience__message">{message}</p>}
+            <p className={styles.status} aria-live="polite">Arrastra y suelta cada carta en su lugar.</p>
+            {message && <p className={styles.message}>{message}</p>}
           </>
         )}
 
-      </section>
+        </section>
+      )}
+
+      {phase === "fragment" && (
+        <section
+          className={styles.fragmentReveal}
+          aria-label="Fragmento Las cartas del Destino"
+        >
+          <div className={styles.fragmentPanel}>
+            <p className={styles.fragmentEyebrow}>FRAGMENTO CONSEGUIDO</p>
+            <h2 className={styles.fragmentTitle}>Las cartas del Destino</h2>
+            <p className={styles.fragmentMeaning}>
+              Simboliza la manipulación del azar, la ilusión del control y las trampas del destino. Representa que en Caraval cada carta dictamina una prueba, pero solo quien desafía las reglas puede cambiar el resultado del juego.
+            </p>
+            <button
+              type="button"
+              className={styles.fragmentContinue}
+              onClick={continueToHat}
+            >
+              Continuar
+            </button>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

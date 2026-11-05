@@ -3,15 +3,88 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { Reflector } from "three/examples/jsm/objects/Reflector.js";
 import { createFloatingCards } from "@/components/chapters/carrusel/FloatingCards";
 
-export default function CarruselScene({ onCardFound }) {
+const softReflectorShader = {
+  name: "SoftReflectorShader",
+  uniforms: {
+    color: { value: null },
+    tDiffuse: { value: null },
+    textureMatrix: { value: null },
+    reflectivity: { value: 0.1 },
+  },
+  vertexShader: `
+    uniform mat4 textureMatrix;
+    varying vec4 vUv;
+
+    #include <common>
+    #include <logdepthbuf_pars_vertex>
+
+    void main() {
+      vUv = textureMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      #include <logdepthbuf_vertex>
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 color;
+    uniform sampler2D tDiffuse;
+    uniform float reflectivity;
+    varying vec4 vUv;
+
+    #include <logdepthbuf_pars_fragment>
+
+    void main() {
+      #include <logdepthbuf_fragment>
+
+      vec3 reflection = texture2DProj(tDiffuse, vUv).rgb;
+      vec3 surfaceColor = mix(color, reflection, reflectivity);
+      gl_FragColor = vec4(surfaceColor, 1.0);
+
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }
+  `,
+};
+
+export default function CarruselScene({
+  onCardFound,
+  isCardReveal = false,
+  showDeck = false,
+  onCardRevealComplete,
+}) {
   const containerRef = useRef(null);
   const onCardFoundRef = useRef(onCardFound);
+  const onCardRevealCompleteRef = useRef(onCardRevealComplete);
+  const floatingCardsRef = useRef(null);
+  const deckRootRef = useRef(null);
+  const cardRevealActiveRef = useRef(isCardReveal);
+  const showDeckRef = useRef(showDeck);
 
   useEffect(() => {
     onCardFoundRef.current = onCardFound;
   }, [onCardFound]);
+
+  useEffect(() => {
+    onCardRevealCompleteRef.current = onCardRevealComplete;
+  }, [onCardRevealComplete]);
+
+  useEffect(() => {
+    cardRevealActiveRef.current = isCardReveal;
+    if (isCardReveal) {
+      floatingCardsRef.current?.playCompletionAnimation(() => {
+        onCardRevealCompleteRef.current?.();
+      });
+    }
+  }, [isCardReveal]);
+
+  useEffect(() => {
+    showDeckRef.current = showDeck;
+    if (deckRootRef.current) {
+      deckRootRef.current.visible = showDeck;
+    }
+  }, [showDeck]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -25,7 +98,7 @@ export default function CarruselScene({ onCardFound }) {
     camera.position.set(0, 1.2, 8);
     // Desplazamiento visual del carrusel respecto del panel izquierdo.
     const viewTargetX = 0.3;
-    const viewTargetYOffset = -0.37;
+    const viewTargetYOffset = -0.48;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -42,9 +115,34 @@ export default function CarruselScene({ onCardFound }) {
     const ambientLight = new THREE.AmbientLight("#77778a", 1.4);
     const keyLight = new THREE.DirectionalLight("#fff4dc", 4.5);
     keyLight.position.set(3, 6, 5);
-    const rimLight = new THREE.PointLight("#9ca8ff", 90, 12, 2);
+    const rimLight = new THREE.PointLight("#c49a78", 70, 12, 2);
     rimLight.position.set(-4, 2, -3);
     scene.add(ambientLight, keyLight, rimLight);
+
+    // Piso de espejo negro: queda en la escena y no dentro del grupo del
+    // carrusel, así el reflejo permanece quieto cuando el usuario lo gira.
+    const floorGeometry = new THREE.PlaneGeometry(24, 24);
+    const floorReflector = new Reflector(floorGeometry, {
+      // La base coincide con el fondo para que el plano no se perciba como
+      // una superficie gris; solo debe aparecer el reflejo del carrusel.
+      color: "#09090c",
+      clipBias: 0.003,
+      textureWidth: 768,
+      textureHeight: 768,
+      multisample: 2,
+      shader: softReflectorShader,
+    });
+    floorReflector.name = "black-glass-floor";
+    floorReflector.rotation.x = -Math.PI / 2;
+    floorReflector.position.y = -2.5;
+    scene.add(floorReflector);
+
+    const deckRoot = new THREE.Group();
+    deckRoot.name = "destiny-card-deck";
+    deckRoot.visible = showDeckRef.current;
+    deckRoot.position.set(-1.8, 0, 0.45);
+    scene.add(deckRoot);
+    deckRootRef.current = deckRoot;
 
     const carouselRoot = new THREE.Group();
     carouselRoot.position.x = 1.35;
@@ -106,7 +204,62 @@ export default function CarruselScene({ onCardFound }) {
     let isDisposed = false;
     let carouselReady = false;
     let carouselModel = null;
+    let deckModel = null;
+    let deckBottom = 0;
     const loader = new GLTFLoader();
+
+    function positionDeck() {
+      if (!deckModel) return;
+      deckRoot.position.y = floorReflector.position.y - deckBottom + 0.08;
+    }
+
+    loader.load(
+      "/models/main%20objects/deck_of_cards.glb",
+      (gltf) => {
+        if (isDisposed) {
+          gltf.scene.traverse((object) => {
+            object.geometry?.dispose();
+            if (Array.isArray(object.material)) {
+              object.material.forEach((material) => material.dispose());
+            } else {
+              object.material?.dispose();
+            }
+          });
+          return;
+        }
+
+        const bounds = new THREE.Box3().setFromObject(gltf.scene);
+        const size = bounds.getSize(new THREE.Vector3());
+        const center = bounds.getCenter(new THREE.Vector3());
+        const largestDimension = Math.max(size.x, size.y, size.z);
+        const modelScale = 1.65 / largestDimension;
+
+        gltf.scene.position.set(
+          -center.x * modelScale,
+          -center.y * modelScale,
+          -center.z * modelScale,
+        );
+        gltf.scene.scale.setScalar(modelScale);
+        gltf.scene.updateMatrixWorld(true);
+
+        const normalizedBounds = new THREE.Box3().setFromObject(gltf.scene);
+        deckBottom = normalizedBounds.min.y;
+        gltf.scene.traverse((object) => {
+          if (!object.isMesh) return;
+          object.castShadow = false;
+          object.receiveShadow = false;
+        });
+
+        deckModel = gltf.scene;
+        deckRoot.add(deckModel);
+        positionDeck();
+        deckRoot.visible = showDeckRef.current;
+      },
+      undefined,
+      (error) => {
+        console.error("No se pudo cargar el mazo de cartas", error);
+      },
+    );
 
     function frameCarousel() {
       const bounds = new THREE.Box3().setFromObject(carouselModel || carouselRoot);
@@ -116,8 +269,9 @@ export default function CarruselScene({ onCardFound }) {
       const tanHalfFov = Math.tan(verticalFov / 2);
       const distanceForHeight = size.y / (2 * tanHalfFov);
       const distanceForWidth = size.x / (2 * tanHalfFov * camera.aspect);
-      // Dejamos un poco más de margen para que el carrusel se vea más pequeño.
-      const distance = Math.max(distanceForHeight, distanceForWidth) * 1.32;
+      // Dejamos más margen para que el carrusel entre completo y se aprecie
+      // mejor el piso reflectante alrededor de la estructura.
+      const distance = Math.max(distanceForHeight, distanceForWidth) * 1.52;
 
       camera.position.set(viewTargetX, center.y + 0.15, center.z + distance);
       camera.lookAt(viewTargetX, center.y + viewTargetYOffset, center.z);
@@ -152,6 +306,14 @@ export default function CarruselScene({ onCardFound }) {
           -center.z * modelScale,
         );
         gltf.scene.scale.setScalar(modelScale);
+        gltf.scene.updateMatrixWorld(true);
+
+        // El modelo se normaliza alrededor del origen, por eso calculamos la
+        // base real después de escalarlo para que nunca parezca suspendido.
+        const normalizedBounds = new THREE.Box3().setFromObject(gltf.scene);
+        floorReflector.position.y = normalizedBounds.min.y - 0.035;
+        positionDeck();
+
         gltf.scene.traverse((object) => {
           if (!object.isMesh) return;
           object.castShadow = false;
@@ -208,17 +370,24 @@ export default function CarruselScene({ onCardFound }) {
       carouselRoot,
       onCardFound: (value) => onCardFoundRef.current?.(value),
     });
+    floatingCardsRef.current = floatingCards;
+    if (cardRevealActiveRef.current) {
+      floatingCards.playCompletionAnimation(() => {
+        onCardRevealCompleteRef.current?.();
+      });
+    }
 
     const pointer = { active: false, x: 0 };
 
     function handlePointerDown(event) {
+      if (cardRevealActiveRef.current || showDeckRef.current) return;
       pointer.active = true;
       pointer.x = event.clientX;
       renderer.domElement.setPointerCapture(event.pointerId);
     }
 
     function handlePointerMove(event) {
-      if (!pointer.active || !carouselReady) return;
+      if (!pointer.active || !carouselReady || cardRevealActiveRef.current || showDeckRef.current) return;
       const deltaX = event.clientX - pointer.x;
       pointer.x = event.clientX;
       carouselRoot.rotation.y += deltaX * 0.008;
@@ -245,9 +414,23 @@ export default function CarruselScene({ onCardFound }) {
     }
 
     let animationFrame;
+    const rotationClock = new THREE.Clock();
+    const carouselRotationSpeed = 0.04;
+
     function animate() {
       animationFrame = window.requestAnimationFrame(animate);
-      // El carrusel no gira solo: únicamente responde al arrastre del usuario.
+      const delta = Math.min(rotationClock.getDelta(), 0.05);
+
+      // Giro automático muy sutil. Durante el arrastre dejamos que el usuario
+      // tenga el control completo y retomamos el movimiento al soltarlo.
+      if (
+        !pointer.active &&
+        carouselReady &&
+        !cardRevealActiveRef.current &&
+        !showDeckRef.current
+      ) {
+        carouselRoot.rotation.y += delta * carouselRotationSpeed;
+      }
       mistMaterial.uniforms.uTime.value = performance.now() * 0.001;
       floatingCards.update();
       renderer.render(scene, camera);
@@ -265,6 +448,8 @@ export default function CarruselScene({ onCardFound }) {
 
     return () => {
       isDisposed = true;
+      floatingCardsRef.current = null;
+      deckRootRef.current = null;
       floatingCards.dispose();
       window.cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
@@ -273,6 +458,9 @@ export default function CarruselScene({ onCardFound }) {
       renderer.domElement.removeEventListener("pointermove", handlePointerMove);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerUp);
+      scene.remove(floorReflector);
+      floorReflector.dispose();
+      floorGeometry.dispose();
       scene.traverse((object) => {
         object.geometry?.dispose();
         if (Array.isArray(object.material)) {

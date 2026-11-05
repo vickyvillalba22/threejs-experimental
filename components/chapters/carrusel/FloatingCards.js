@@ -28,6 +28,12 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
   const clock = new THREE.Clock();
   let isDisposed = false;
   let pointerDown = null;
+  let cardsLoaded = false;
+  let pendingCompletionCallback = null;
+  let completionAnimation = null;
+
+  const completionDuration = 1900;
+  const completionStagger = 90;
 
   function updatePointer(event) {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -44,6 +50,7 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
     const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
     pointerDown = null;
     if (distance > 8) return;
+    if (completionAnimation) return;
 
     updatePointer(event);
     raycaster.setFromCamera(pointer, camera);
@@ -118,16 +125,86 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
 
         anchor.add(card);
         cardsRoot.add(anchor);
-        card.traverse((object) => {
-          if (object.isMesh && object.visible) interactiveMeshes.push(object);
-        });
+       card.traverse((object) => {
+         if (object.isMesh && object.visible) interactiveMeshes.push(object);
+       });
       });
+
+      cardsLoaded = true;
+      if (pendingCompletionCallback) {
+        const callback = pendingCompletionCallback;
+        pendingCompletionCallback = null;
+        startCompletionAnimation(callback);
+      }
     },
     undefined,
     (error) => console.error("No se pudieron cargar las cartas", error),
   );
 
+  function startCompletionAnimation(onComplete) {
+    if (isDisposed) return;
+    if (!cardsLoaded) {
+      pendingCompletionCallback = onComplete;
+      return;
+    }
+    if (completionAnimation) return;
+
+    cardsRoot.children.forEach((anchor, index) => {
+      anchor.visible = true;
+      anchor.position.copy(anchor.userData.basePosition);
+      anchor.rotation.set(0, 0, 0);
+      anchor.scale.setScalar(1);
+      anchor.userData.completionStart = anchor.position.clone();
+      anchor.userData.completionIndex = index;
+    });
+
+    completionAnimation = {
+      startedAt: performance.now(),
+      onComplete,
+    };
+  }
+
   function update() {
+    if (completionAnimation) {
+      const elapsed = performance.now() - completionAnimation.startedAt;
+      const totalDuration = completionDuration + completionStagger * Math.max(cardsRoot.children.length - 1, 0);
+      const progress = Math.min(elapsed / totalDuration, 1);
+
+      cardsRoot.children.forEach((anchor) => {
+        const index = anchor.userData.completionIndex || 0;
+        const start = anchor.userData.completionStart;
+        const localProgress = Math.min(
+          Math.max((elapsed - index * completionStagger) / completionDuration, 0),
+          1,
+        );
+        const easedProgress = 1 - (1 - localProgress) ** 3;
+        const target = new THREE.Vector3(
+          0,
+          -0.2 + index * 0.012,
+          0.48 + index * 0.018,
+        );
+
+        anchor.position.lerpVectors(start, target, easedProgress);
+        anchor.rotation.z = anchor.userData.tilt * (1 - easedProgress);
+        const card = anchor.children[0];
+        if (card) {
+          card.lookAt(camera.position);
+          card.rotateY(Math.PI);
+          card.rotateZ(anchor.rotation.z);
+        }
+      });
+
+      if (progress >= 1) {
+        cardsRoot.children.forEach((anchor) => {
+          anchor.visible = false;
+        });
+        const callback = completionAnimation.onComplete;
+        completionAnimation = null;
+        callback?.();
+      }
+      return;
+    }
+
     const elapsed = clock.getElapsedTime();
     cardsRoot.children.forEach((anchor, index) => {
       if (!anchor.userData.found) {
@@ -145,8 +222,11 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
 
   return {
     update,
+    playCompletionAnimation: startCompletionAnimation,
     dispose() {
       isDisposed = true;
+      pendingCompletionCallback = null;
+      completionAnimation = null;
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       carouselRoot.remove(cardsRoot);

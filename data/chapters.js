@@ -33,7 +33,7 @@ export const chapters = {
     id: "sombrero",
     title: "El Sombrero de Copa",
     description: "El artefacto del Maestro de Ceremonias aguarda suspendido en la penumbra. En su interior se oculta la última pregunta decisiva para revelar el rostro tras la máscara.",
-    instructions: "Arrastra el sombrero hacia arriba para darle la vuelta. Luego responde la adivinanza para descubrir su secreto.",
+    instructions: "Arrastra el sombrero hacia arriba para descubrir el último acertijo.",
   },
   "tuneles": {
     id: "tuneles",
