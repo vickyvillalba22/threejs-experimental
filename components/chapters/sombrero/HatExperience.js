@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "motion/react";
 import HatScene from "@/components/chapters/sombrero/HatScene";
+import InterfaceReveal from "@/components/transitions/InterfaceReveal";
 import { useProgress } from "@/hooks/useProgress";
 
 export default function HatExperience({ title, description, instructions }) {
@@ -44,18 +46,27 @@ export default function HatExperience({ title, description, instructions }) {
     <main className="relative min-h-svh overflow-hidden bg-[#09090c] text-app-text">
       <HatScene onHatFlipped={handleHatFlipChange} />
 
+      <AnimatePresence mode="wait">
       {phase === "hat-reveal" && (
-        <section className="pointer-events-none absolute inset-x-0 top-6 z-10 flex justify-center px-6 text-center sm:top-8">
+        <InterfaceReveal
+          as="section"
+          key="hat-reveal"
+          className="pointer-events-none absolute inset-x-0 top-6 z-10 flex justify-center px-6 text-center sm:top-8"
+        >
           <div className="max-w-xl drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]">
             <h1 className="font-app-display text-4xl text-app-text">{title}</h1>
             <p className="mt-3 text-[24px] leading-relaxed text-app-text">{instructions}</p>
           </div>
-        </section>
+        </InterfaceReveal>
       )}
 
       {phase === "hat-riddle" && (
-        <section className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center p-6 pb-8 text-center sm:items-center sm:pb-6">
-          <form className="hat-riddle-reveal pointer-events-auto w-full max-w-lg" onSubmit={solveRiddle}>
+        <InterfaceReveal
+          as="section"
+          key="hat-riddle"
+          className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center p-6 pb-8 text-center sm:items-center sm:pb-6"
+        >
+          <form className="pointer-events-auto w-full max-w-lg" onSubmit={solveRiddle}>
             <p className="object-modal-copy font-app-display leading-relaxed text-app-text">
               En pociones y hechizos la vas a encontrar,<br />
               de todos los deseos es la dueña sin par.<br />
@@ -82,11 +93,13 @@ export default function HatExperience({ title, description, instructions }) {
               </p>
             )}
           </form>
-        </section>
+        </InterfaceReveal>
       )}
 
       {phase === "hat-fragment" && (
-        <section
+        <InterfaceReveal
+          as="section"
+          key="hat-fragment"
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 p-4 sm:p-8"
           aria-label="Fragmento Sombrero de Copa"
         >
@@ -104,8 +117,9 @@ export default function HatExperience({ title, description, instructions }) {
               Continuar
             </button>
           </div>
-        </section>
+        </InterfaceReveal>
       )}
+      </AnimatePresence>
     </main>
   );
 }

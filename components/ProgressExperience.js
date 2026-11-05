@@ -2,11 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import LegendProgress from "@/components/progress/LegendProgress";
-import DevNavigation from "@/components/dev/DevNavigation";
 import HomeButton from "@/components/ui/HomeButton";
 import { ProgressProvider } from "@/hooks/useProgress";
 import AmbientMusic from "@/components/audio/AmbientMusic";
 import { getAmbientTrack } from "@/data/ambientTracks";
+import PageTransition from "@/components/transitions/PageTransition";
 
 export default function ProgressExperience({ children }) {
   const pathname = usePathname();
@@ -21,10 +21,9 @@ export default function ProgressExperience({ children }) {
         showControl={Boolean(ambientTrack)}
         alignWithHomeButton={isExperienceRoute}
       />
-      {children}
+      <PageTransition>{children}</PageTransition>
       {isExperienceRoute && !isFinalA && <LegendProgress />}
       {isExperienceRoute && <HomeButton />}
-      <DevNavigation />
     </ProgressProvider>
   );
 }

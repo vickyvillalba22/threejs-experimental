@@ -11,6 +11,7 @@ import TiendaExperience from '@/components/chapters/tienda/TiendaExperience';
 import CarruselExperience from '@/components/chapters/carrusel/CarruselExperience';
 import HatExperience from '@/components/chapters/sombrero/HatExperience';
 import FinalAExperience from '@/components/chapters/final/FinalAExperience';
+import InterfaceReveal from '@/components/transitions/InterfaceReveal';
 import { useProgress } from '@/hooks/useProgress';
 import ChapterInstructions from '@/components/ui/ChapterInstructions';
 
@@ -83,24 +84,27 @@ export default function EscenaDinamica({ params }) {
       ) : null}
 
       <div className={chapterId === 'hub'
-        ? 'pointer-events-none absolute left-6 top-28 z-20 max-w-xs sm:left-8'
-        : 'mt-8 flex flex-wrap gap-4'}>
+         ? 'pointer-events-none absolute left-6 top-28 z-20 max-w-xs sm:left-8'
+         : 'mt-8 flex flex-wrap gap-4'}>
         {chapterId === 'hub' && (
           <div className={`transition-[opacity,filter] duration-500 ${isRoseRevealed ? 'opacity-0 blur-sm' : ''}`}>
-            <h1 className="font-app-display text-5xl text-app-text sm:text-6xl">{chapterData.title}</h1>
-            <p className="mt-5 max-w-md font-app-body text-[24px] leading-relaxed text-app-muted">
-              {chapterData.description}
-            </p>
-            <p className="mt-4 max-w-md font-app-body text-[24px] leading-relaxed text-app-text">
-              {isRoseRevealed
-                ? 'El arco ha revelado una rosa. Tómala y continúa hacia la primera escena.'
-                : chapterData.instructions}
-            </p>
+            <InterfaceReveal delay={0.2}>
+              <h1 className="font-app-display text-5xl text-app-text sm:text-6xl">{chapterData.title}</h1>
+              <p className="mt-5 max-w-md font-app-body text-[24px] leading-relaxed text-app-muted">
+                {chapterData.description}
+              </p>
+              <p className="mt-4 max-w-md font-app-body text-[24px] leading-relaxed text-app-text">
+                {isRoseRevealed
+                  ? 'El arco ha revelado una rosa. Tómala y continúa hacia la primera escena.'
+                  : chapterData.instructions}
+              </p>
+            </InterfaceReveal>
           </div>
         )}
         {chapterId === 'hub' && isRoseRevealed && (
           <div className="pointer-events-none fixed inset-x-0 bottom-6 z-10 flex justify-center p-6 sm:bottom-8">
-            <section
+            <InterfaceReveal
+              as="section"
               className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/25 bg-black/65 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-sm sm:p-6"
               aria-label="Rosa descubierta"
             >
@@ -115,7 +119,7 @@ export default function EscenaDinamica({ params }) {
               >
                 Continuar
               </button>
-            </section>
+            </InterfaceReveal>
           </div>
         )}
 

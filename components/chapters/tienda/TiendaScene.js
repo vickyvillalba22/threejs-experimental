@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { createThreeEntrance } from "@/components/transitions/three";
 
 const MASK_REVEAL_DURATION = 1000;
 const MASK_REVEAL_SCALE = 3;
@@ -21,6 +22,8 @@ export default function TiendaScene({
   const onClockHourChangeRef = useRef(onClockHourChange);
   const showPocketWatchRef = useRef(showPocketWatch);
   const pocketWatchAwakenedRef = useRef(pocketWatchAwakened);
+  const pocketWatchEntranceRef = useRef(null);
+  const pocketWatchEntranceStartedRef = useRef(false);
 
   useEffect(() => {
     onMaskClickRef.current = onMaskClick;
@@ -33,6 +36,10 @@ export default function TiendaScene({
   useEffect(() => {
     showPocketWatchRef.current = showPocketWatch;
     window.dispatchEvent(new Event("resize"));
+    if (showPocketWatch && pocketWatchEntranceRef.current && !pocketWatchEntranceStartedRef.current) {
+      pocketWatchEntranceStartedRef.current = true;
+      pocketWatchEntranceRef.current.start();
+    }
   }, [showPocketWatch]);
 
   useEffect(() => {
@@ -228,8 +235,15 @@ export default function TiendaScene({
     bottle.scale.setScalar(0.68);
     scene.add(bottle);
 
+    const maskEntranceRoot = new THREE.Group();
+    maskEntranceRoot.name = "venetian-mask-entrance";
+    bottle.add(maskEntranceRoot);
+
     let isDisposed = false;
     let maskObject = null;
+    let maskEntrance = null;
+    let isMaskEntranceActive = false;
+    let maskEntranceStarted = false;
     const maskMaterialSnapshots = [];
     const maskRevealStartPosition = new THREE.Vector3();
     const maskRevealTargetPosition = new THREE.Vector3();
@@ -241,6 +255,7 @@ export default function TiendaScene({
     let isMaskRevealAppearanceReady = false;
     let pocketWatchBounds = null;
     let clockHandsCenter = null;
+    let pocketWatchEntrance = null;
     let hourHand = null;
     let minuteHand = null;
     const pocketWatchMaterialSnapshots = [];
@@ -289,6 +304,50 @@ export default function TiendaScene({
       }
     }
 
+    function startMaskEntrance() {
+      if (!maskEntranceRoot || maskEntranceStarted || !maskObject) return;
+
+      maskEntranceStarted = true;
+      isMaskEntranceActive = true;
+      maskFillLight.intensity = 18;
+
+      maskEntrance = createThreeEntrance({
+        root: maskEntranceRoot,
+        duration: 1.7,
+        startScale: 0.24,
+        startPosition: { x: 0, y: -0.28, z: -0.12 },
+        startRotation: { x: 0.08, y: -0.28, z: 0.04 },
+        onUpdate: ({ progress }) => {
+          maskFillLight.intensity = THREE.MathUtils.lerp(18, 55, progress);
+        },
+        onComplete: () => {
+          isMaskEntranceActive = false;
+          // If the model loaded after the bottle had already been lifted, it
+          // entered directly in the scene. In that case, restore the direct
+          // parent expected by the existing mask interaction.
+          if (maskEntranceRoot.parent !== bottle && maskObject.parent === maskEntranceRoot) {
+            scene.attach(maskObject);
+          }
+        },
+      });
+      maskEntrance.start();
+    }
+
+    function detachMaskFromBottle() {
+      if (isMaskEntranceActive) {
+        maskEntrance?.stop();
+        isMaskEntranceActive = false;
+      }
+
+      if (maskEntranceRoot.parent === bottle) {
+        scene.attach(maskEntranceRoot);
+      }
+
+      if (maskObject.parent === maskEntranceRoot) {
+        scene.attach(maskObject);
+      }
+    }
+
     function restoreMaskMaterials() {
       maskMaterialSnapshots.forEach(({ material, snapshot }) => {
         if (snapshot.color && material.color) material.color.copy(snapshot.color);
@@ -309,9 +368,13 @@ export default function TiendaScene({
 
     function startMaskReveal() {
       if (!maskObject || isMaskRevealed) return;
+      if (isMaskEntranceActive) return;
 
       isMaskRevealed = true;
-      if (maskObject.parent === bottle) scene.attach(maskObject);
+      if (maskEntranceRoot.parent === bottle) {
+        detachMaskFromBottle();
+        return;
+      }
       maskRevealStartPosition.copy(maskObject.position);
       maskRevealTargetPosition.copy(cameraTarget);
       maskRevealTargetPosition.y += MASK_REVEAL_VERTICAL_OFFSET;
@@ -356,7 +419,6 @@ export default function TiendaScene({
         gltf.scene.rotation.set(0, Math.PI, 0);
         gltf.scene.renderOrder = 2;
         maskObject = gltf.scene;
-        if (isBottleLifted) scene.attach(maskObject);
 
         gltf.scene.traverse((object) => {
           if (!object.isMesh) return;
@@ -392,7 +454,11 @@ export default function TiendaScene({
           });
         });
 
-        bottle.add(gltf.scene);
+         maskEntranceRoot.add(gltf.scene);
+         if (isBottleLifted) {
+           scene.attach(maskEntranceRoot);
+         }
+         startMaskEntrance();
       },
       undefined,
       (error) => {
@@ -406,7 +472,10 @@ export default function TiendaScene({
     // La combinación mantiene la esfera vertical y cambia la cara visible.
     pocketWatch.rotation.set(0, 0, 0);
     pocketWatch.visible = false;
-    scene.add(pocketWatch);
+    const pocketWatchEntranceRoot = new THREE.Group();
+    pocketWatchEntranceRoot.name = "pocket-watch-entrance";
+    pocketWatchEntranceRoot.add(pocketWatch);
+    scene.add(pocketWatchEntranceRoot);
 
     const pocketWatchLight = new THREE.PointLight("#fff1cf", 75, 4, 2);
     pocketWatchLight.position.set(1.55, 0.8, 0.35);
@@ -512,10 +581,27 @@ export default function TiendaScene({
           minuteHand.getWorldPosition(minuteHandCenter);
           clockHandsCenter = hourHandCenter.add(minuteHandCenter).multiplyScalar(0.5);
         }
-        pocketWatchBounds = new THREE.Box3().setFromObject(pocketWatch);
-        pocketWatch.visible = showPocketWatchRef.current;
-        pocketWatchLight.visible = showPocketWatchRef.current;
-        window.dispatchEvent(new Event("resize"));
+         pocketWatchBounds = new THREE.Box3().setFromObject(pocketWatch);
+         pocketWatch.visible = showPocketWatchRef.current;
+         pocketWatchLight.visible = showPocketWatchRef.current;
+
+         pocketWatchLight.intensity = 18;
+         pocketWatchEntrance = createThreeEntrance({
+           root: pocketWatchEntranceRoot,
+           duration: 1.65,
+           startScale: 0.22,
+           startPosition: { x: 0, y: -0.22, z: -0.12 },
+           startRotation: { x: 0.08, y: -0.3, z: -0.04 },
+           onUpdate: ({ progress }) => {
+             pocketWatchLight.intensity = THREE.MathUtils.lerp(18, 75, progress);
+           },
+         });
+         pocketWatchEntranceRef.current = pocketWatchEntrance;
+         if (showPocketWatchRef.current && !pocketWatchEntranceStartedRef.current) {
+           pocketWatchEntranceStartedRef.current = true;
+           pocketWatchEntrance.start();
+         }
+         window.dispatchEvent(new Event("resize"));
       },
       undefined,
       (error) => {
@@ -885,7 +971,7 @@ export default function TiendaScene({
 
       // Sacamos la máscara del frasco conservando su posición en pantalla.
       // Así queda disponible para el clic cuando el vidrio desaparece.
-      if (maskObject && maskObject.parent === bottle) scene.attach(maskObject);
+       if (maskEntranceRoot.parent === bottle) detachMaskFromBottle();
     }
 
     function updateClockFromPointer(event) {
@@ -961,7 +1047,9 @@ export default function TiendaScene({
 
       if (isBottleLifted) {
         isMaskPointerDown = Boolean(
-          maskObject && raycaster.intersectObject(maskObject, true).length > 0,
+          !isMaskEntranceActive &&
+          maskObject &&
+          raycaster.intersectObject(maskObject, true).length > 0,
         );
         return;
       }
@@ -983,8 +1071,8 @@ export default function TiendaScene({
 
       const bounds = renderer.domElement.getBoundingClientRect();
       const upwardMovement = (bottlePointerStartY - event.clientY) / bounds.height;
-      if (upwardMovement > 0 && maskObject && maskObject.parent === bottle) {
-        scene.attach(maskObject);
+       if (upwardMovement > 0 && maskEntranceRoot.parent === bottle) {
+         detachMaskFromBottle();
       }
       bottle.position.y = THREE.MathUtils.clamp(upwardMovement * 3, 0, 0.9);
 
@@ -1208,6 +1296,10 @@ export default function TiendaScene({
       renderer.domElement.removeEventListener("pointermove", handlePointerMove);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
+      maskEntrance?.stop();
+      pocketWatchEntrance?.stop();
+      pocketWatchEntranceRef.current = null;
+      pocketWatchEntranceStartedRef.current = false;
       scene.traverse((object) => {
         if (!object.geometry) return;
         object.geometry?.dispose();

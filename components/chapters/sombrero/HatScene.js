@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { createThreeEntrance } from "@/components/transitions/three";
 
 const HAT_MODEL_URL = "/models/main%20objects/top_hat__free_download.glb";
 
@@ -124,6 +125,7 @@ export default function HatScene({ onHatFlipped }) {
     let rotationX = 0;
     let rotationY = Math.PI;
     let lastPointer = { x: 0, y: 0 };
+    let entrance = null;
     const noiseTexture = createNoiseTexture();
     const loader = new GLTFLoader();
 
@@ -193,6 +195,27 @@ export default function HatScene({ onHatFlipped }) {
 
         hatRoot.add(hatObject);
         frameHat();
+
+        rimLight.intensity = 32;
+        topLight.intensity = 22;
+        particleMaterial.opacity = 0.08;
+        particles.scale.setScalar(0.84);
+
+        entrance = createThreeEntrance({
+          root: hatRoot,
+          duration: 1.8,
+          startScale: 0.2,
+          startPosition: { x: 0, y: -0.55, z: -0.12 },
+          startRotation: { x: 0.12, y: -0.34, z: 0.06 },
+          onUpdate: ({ progress }) => {
+            rimLight.intensity = THREE.MathUtils.lerp(32, 125, progress);
+            topLight.intensity = THREE.MathUtils.lerp(22, 85, progress);
+            particleMaterial.opacity = THREE.MathUtils.lerp(0.08, 0.36, progress);
+            particles.scale.setScalar(THREE.MathUtils.lerp(0.84, 1, progress));
+          },
+        });
+
+        entrance.start();
       },
       undefined,
       (error) => {
@@ -272,6 +295,7 @@ export default function HatScene({ onHatFlipped }) {
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerUp);
       if (animationFrameId) window.cancelAnimationFrame(animationFrameId);
+      entrance?.stop();
       if (hatObject) disposeObject(hatObject);
       noiseTexture.dispose();
       particleGeometry.dispose();

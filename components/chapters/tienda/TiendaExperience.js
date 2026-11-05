@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "motion/react";
 import TiendaScene from "@/components/chapters/tienda/TiendaScene";
+import InterfaceReveal from "@/components/transitions/InterfaceReveal";
 import { useProgress } from "@/hooks/useProgress";
 
 export default function TiendaExperience({ title, description }) {
@@ -82,8 +84,10 @@ export default function TiendaExperience({ title, description }) {
         className={`pointer-events-none absolute inset-x-4 top-6 z-10 mx-auto max-w-3xl text-center transition-[opacity,filter] duration-500 sm:top-8 ${hasFoundMask ? "opacity-0 blur-sm" : ""}`}
         aria-hidden={hasFoundMask}
       >
-        <h1 className="font-app-display text-4xl text-app-text sm:text-5xl">{title}</h1>
-        <p className="mt-4 text-[24px] leading-relaxed text-app-muted">{description}</p>
+        <InterfaceReveal delay={0.15}>
+          <h1 className="font-app-display text-4xl text-app-text sm:text-5xl">{title}</h1>
+          <p className="mt-4 text-[24px] leading-relaxed text-app-muted">{description}</p>
+        </InterfaceReveal>
       </header>
       <TiendaScene
         onMaskClick={handleGlassClick}
@@ -92,8 +96,12 @@ export default function TiendaExperience({ title, description }) {
         pocketWatchAwakened={isClockAwakening}
       />
 
+      <AnimatePresence mode="wait">
       {hasFoundMask && phase === "shop" && (
-        <section
+        <InterfaceReveal
+          as="section"
+          key={`shop-${isPaymentOpen ? "payment" : "fragment"}`}
+          delay={0.1}
           className="absolute inset-x-4 bottom-6 z-10 mx-auto max-w-md rounded-2xl border border-white/25 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-md sm:bottom-8 sm:p-6"
           aria-label="Máscara veneciana"
         >
@@ -142,11 +150,11 @@ export default function TiendaExperience({ title, description }) {
             </>
           )}
           {message && <p className="mt-3 text-xs text-app-subtle" aria-live="polite">{message}</p>}
-        </section>
+        </InterfaceReveal>
       )}
 
       {phase === "clock-riddle" && (
-        <section className="absolute inset-0 z-20 grid place-items-center bg-black p-6 text-center">
+        <InterfaceReveal as="section" key="clock-riddle" className="absolute inset-0 z-20 grid place-items-center bg-black p-6 text-center">
           <form className="w-full max-w-md" onSubmit={solveClockRiddle}>
             <p className="text-[22px] text-app-subtle">Resuelve la adivinanza para encontrar la siguiente pieza:</p>
             <p className="object-modal-copy mt-6 font-app-display text-app-text">
@@ -165,11 +173,11 @@ export default function TiendaExperience({ title, description }) {
               RESPONDER
             </button>
           </form>
-        </section>
+        </InterfaceReveal>
       )}
 
       {phase === "clock" && (
-        <section className="pointer-events-none absolute inset-0 z-20 flex items-center bg-black/35 p-4 sm:p-8">
+        <InterfaceReveal as="section" key="clock" className="pointer-events-none absolute inset-0 z-20 flex items-center bg-black/35 p-4 sm:p-8">
           <div className="pointer-events-none w-full max-w-md border border-white/15 rounded-lg bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:w-1/2 sm:max-w-lg sm:p-8">
             <p className="text-md tracking-[0.18em] text-app-subtle">EL RELOJ</p>
             <p className="mt-5 font-app-display text-4xl text-app-text">Ponlo en hora.</p>
@@ -190,11 +198,13 @@ export default function TiendaExperience({ title, description }) {
               </button>
             </div>
           </div>
-        </section>
+        </InterfaceReveal>
       )}
 
       {phase === "clock-fragment" && (
-        <section
+        <InterfaceReveal
+          as="section"
+          key="clock-fragment"
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 p-4 sm:p-8"
           aria-label="Fragmento Reloj"
         >
@@ -212,8 +222,9 @@ export default function TiendaExperience({ title, description }) {
               Continuar
             </button>
           </div>
-        </section>
+        </InterfaceReveal>
       )}
+      </AnimatePresence>
     </main>
   );
 }

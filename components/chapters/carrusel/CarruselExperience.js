@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "motion/react";
 import { useProgress } from "@/hooks/useProgress";
 import CarruselScene from "@/components/chapters/carrusel/CarruselScene";
+import InterfaceReveal from "@/components/transitions/InterfaceReveal";
 import styles from "@/components/chapters/carrusel/CarruselExperience.module.css";
 
 const CARD_VALUES = [1, 2, 3, 4, 5, 6, 7];
@@ -89,8 +91,9 @@ export default function CarruselExperience({ title, description, instructions })
         showDeck={phase === "fragment"}
         onCardRevealComplete={() => setPhase("fragment")}
       />
+      <AnimatePresence mode="wait">
       {phase !== "fragment" && phase !== "card-reveal" && (
-        <section className={styles.panel}>
+        <InterfaceReveal as="section" key={`panel-${phase}`} move={false} className={styles.panel}>
         {phase === "search" && (
           <>
             <h1>{title}</h1>
@@ -126,7 +129,6 @@ export default function CarruselExperience({ title, description, instructions })
 
         {phase === "order" && (
           <>
-            <p className={styles.eyebrow}>LA BARAJA HA SIDO REVELADA</p>
             <h1>{title}</h1>
             <p className={`${styles.copy} ${styles.chapterCopy}`}>{description}</p>
             <p className={`${styles.copy} ${styles.chapterCopy}`}>{instructions}</p>
@@ -162,16 +164,17 @@ export default function CarruselExperience({ title, description, instructions })
                 </button>
               ))}
             </div>
-            <p className={styles.status} aria-live="polite">Arrastra y suelta cada carta en su lugar.</p>
             {message && <p className={styles.message}>{message}</p>}
           </>
         )}
 
-        </section>
+        </InterfaceReveal>
       )}
 
       {phase === "fragment" && (
-        <section
+        <InterfaceReveal
+          as="section"
+          key="fragment"
           className={styles.fragmentReveal}
           aria-label="Fragmento Las cartas del Destino"
         >
@@ -189,8 +192,9 @@ export default function CarruselExperience({ title, description, instructions })
               Continuar
             </button>
           </div>
-        </section>
+        </InterfaceReveal>
       )}
+      </AnimatePresence>
     </main>
   );
 }

@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { Reflector } from "three/examples/jsm/objects/Reflector.js";
 import { createFloatingCards } from "@/components/chapters/carrusel/FloatingCards";
+import { createThreeEntrance } from "@/components/transitions/three";
 
 const softReflectorShader = {
   name: "SoftReflectorShader",
@@ -59,6 +60,8 @@ export default function CarruselScene({
   const onCardRevealCompleteRef = useRef(onCardRevealComplete);
   const floatingCardsRef = useRef(null);
   const deckRootRef = useRef(null);
+  const deckEntranceRef = useRef(null);
+  const deckEntranceStartedRef = useRef(false);
   const cardRevealActiveRef = useRef(isCardReveal);
   const showDeckRef = useRef(showDeck);
 
@@ -83,6 +86,10 @@ export default function CarruselScene({
     showDeckRef.current = showDeck;
     if (deckRootRef.current) {
       deckRootRef.current.visible = showDeck;
+    }
+    if (showDeck && deckEntranceRef.current && !deckEntranceStartedRef.current) {
+      deckEntranceStartedRef.current = true;
+      deckEntranceRef.current.start();
     }
   }, [showDeck]);
 
@@ -141,12 +148,18 @@ export default function CarruselScene({
     deckRoot.name = "destiny-card-deck";
     deckRoot.visible = showDeckRef.current;
     deckRoot.position.set(-1.8, 0, 0.45);
-    scene.add(deckRoot);
+    const deckEntranceRoot = new THREE.Group();
+    deckEntranceRoot.name = "destiny-card-deck-entrance";
+    deckEntranceRoot.add(deckRoot);
+    scene.add(deckEntranceRoot);
     deckRootRef.current = deckRoot;
 
     const carouselRoot = new THREE.Group();
     carouselRoot.position.x = 1.35;
-    scene.add(carouselRoot);
+    const carouselEntranceRoot = new THREE.Group();
+    carouselEntranceRoot.name = "carousel-entrance";
+    carouselEntranceRoot.add(carouselRoot);
+    scene.add(carouselEntranceRoot);
 
     const mistParticleCount = 420;
     const mistPositions = new Float32Array(mistParticleCount * 3);
@@ -206,6 +219,8 @@ export default function CarruselScene({
     let carouselModel = null;
     let deckModel = null;
     let deckBottom = 0;
+    let carouselEntrance = null;
+    let deckEntrance = null;
     const loader = new GLTFLoader();
 
     function positionDeck() {
@@ -254,6 +269,19 @@ export default function CarruselScene({
         deckRoot.add(deckModel);
         positionDeck();
         deckRoot.visible = showDeckRef.current;
+
+        deckEntrance = createThreeEntrance({
+          root: deckEntranceRoot,
+          duration: 1.55,
+          startScale: 0.7,
+          startPosition: { x: 0, y: -0.32, z: -0.1 },
+          startRotation: { x: 0.08, y: -0.24, z: 0.04 },
+        });
+        deckEntranceRef.current = deckEntrance;
+        if (showDeckRef.current) {
+          deckEntranceStartedRef.current = true;
+          deckEntrance.start();
+        }
       },
       undefined,
       (error) => {
@@ -356,6 +384,23 @@ export default function CarruselScene({
         carouselReady = true;
         frameCarousel();
         resize();
+
+        keyLight.intensity = 1.8;
+        rimLight.intensity = 24;
+        mistParticles.scale.setScalar(0.8);
+        carouselEntrance = createThreeEntrance({
+          root: carouselEntranceRoot,
+          duration: 1.9,
+          startScale: 0.72,
+          startPosition: { x: 0, y: -0.38, z: -0.2 },
+          startRotation: { x: 0.06, y: -0.24, z: 0.03 },
+          onUpdate: ({ progress }) => {
+            keyLight.intensity = THREE.MathUtils.lerp(1.8, 4.5, progress);
+            rimLight.intensity = THREE.MathUtils.lerp(24, 70, progress);
+            mistParticles.scale.setScalar(THREE.MathUtils.lerp(0.8, 1, progress));
+          },
+        });
+        carouselEntrance.start();
       },
       undefined,
       (error) => {
@@ -459,6 +504,10 @@ export default function CarruselScene({
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerUp);
       scene.remove(floorReflector);
+      carouselEntrance?.stop();
+      deckEntrance?.stop();
+      deckEntranceRef.current = null;
+      deckEntranceStartedRef.current = false;
       floorReflector.dispose();
       floorGeometry.dispose();
       scene.traverse((object) => {

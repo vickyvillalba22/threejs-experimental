@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { createThreeEntrance } from "@/components/transitions/three";
 
 const CARD_VALUES = ["CherviTuz", "Chervi2", "Chervi3", "Chervi4", "Chervi5", "Chervi6", "Chervi7"];
 const CARD_POSITIONS = [
@@ -31,6 +32,7 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
   let cardsLoaded = false;
   let pendingCompletionCallback = null;
   let completionAnimation = null;
+  const entranceControllers = [];
 
   const completionDuration = 1900;
   const completionStagger = 90;
@@ -123,11 +125,26 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
           });
         });
 
-        anchor.add(card);
+        const cardEntranceRoot = new THREE.Group();
+        cardEntranceRoot.name = `card-entrance-${index + 1}`;
+        anchor.userData.cardObject = card;
+        cardEntranceRoot.add(card);
+        anchor.add(cardEntranceRoot);
         cardsRoot.add(anchor);
-       card.traverse((object) => {
-         if (object.isMesh && object.visible) interactiveMeshes.push(object);
-       });
+        card.traverse((object) => {
+          if (object.isMesh && object.visible) interactiveMeshes.push(object);
+        });
+
+        const entrance = createThreeEntrance({
+          root: cardEntranceRoot,
+          duration: 1.15,
+          delay: index * 0.1,
+          startScale: 0.18,
+          startPosition: { x: 0, y: -0.22, z: -0.12 },
+          startRotation: { x: 0.08, y: -0.18, z: anchor.userData.tilt },
+        });
+        entranceControllers.push(entrance);
+        entrance.start();
       });
 
       cardsLoaded = true;
@@ -186,8 +203,8 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
 
         anchor.position.lerpVectors(start, target, easedProgress);
         anchor.rotation.z = anchor.userData.tilt * (1 - easedProgress);
-        const card = anchor.children[0];
-        if (card) {
+         const card = anchor.userData.cardObject;
+         if (card) {
           card.lookAt(camera.position);
           card.rotateY(Math.PI);
           card.rotateZ(anchor.rotation.z);
@@ -210,8 +227,8 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
       if (!anchor.userData.found) {
         const basePosition = anchor.userData.basePosition;
         anchor.position.y = basePosition.y + Math.sin(elapsed * 1.4 + index) * 0.08;
-        const card = anchor.children[0];
-        if (card) {
+         const card = anchor.userData.cardObject;
+         if (card) {
           card.lookAt(camera.position);
           card.rotateY(Math.PI);
           card.rotateZ(anchor.userData.tilt);
@@ -227,6 +244,7 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
       isDisposed = true;
       pendingCompletionCallback = null;
       completionAnimation = null;
+      entranceControllers.forEach((entrance) => entrance.stop());
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       carouselRoot.remove(cardsRoot);

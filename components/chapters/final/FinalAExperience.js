@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useProgress } from "@/hooks/useProgress";
 import FinalAScene from "@/components/chapters/final/FinalAScene";
 import FinalRevealSequence from "@/components/chapters/final/FinalRevealSequence";
+import InterfaceReveal from "@/components/transitions/InterfaceReveal";
 import styles from "./FinalAExperience.module.css";
 
 export default function FinalAExperience({ title, description, instructions }) {
@@ -48,16 +49,16 @@ export default function FinalAExperience({ title, description, instructions }) {
             }}
           />
           {!isSceneReady && (
-            <section className={styles.sceneLoader} aria-live="polite">
-              <p className={styles.sceneLoaderCopy}>Las estrellas te guían hacia tu deseo.</p>
-            </section>
+          <InterfaceReveal as="section" className={styles.sceneLoader} aria-live="polite">
+            <p className={styles.sceneLoaderCopy}>Las estrellas te guían hacia tu deseo.</p>
+          </InterfaceReveal>
           )}
         </>
       )}
       {isPanelVisible && !hasSubmittedWish && (
         <>
           <div className={styles.glow} aria-hidden="true" />
-          <section className={styles.panel} aria-labelledby="final-a-title">
+          <InterfaceReveal as="section" className={styles.panel} aria-labelledby="final-a-title">
 
             <h1 id="final-a-title" className={styles.title}>{title}</h1>
             <p className={styles.chapterCopy}>{description}</p>
@@ -82,15 +83,15 @@ export default function FinalAExperience({ title, description, instructions }) {
                 Legend ha guardado tu deseo.
               </p>
             )}
-          </section>
+          </InterfaceReveal>
         </>
       )}
       {hasSubmittedWish && (
-        <section className={styles.confirmation} aria-live="polite">
+        <InterfaceReveal as="section" className={styles.confirmation} aria-live="polite">
           <p className={styles.confirmationCopy}>
             Tu deseo ha sido recibido por el cielo. Ahora una nueva estrella lo guarda entre sus luces.
           </p>
-        </section>
+        </InterfaceReveal>
       )}
       {hasSubmittedWish && isWishAnimationComplete && (
         <button
