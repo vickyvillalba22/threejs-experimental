@@ -21,7 +21,7 @@ export default function DevNavigation() {
   if (process.env.NODE_ENV === "production") return null;
 
   return (
-    <details className="fixed bottom-4 right-4 z-[100] w-52 rounded-xl border border-purple-400 bg-black/85 p-3 text-purple-200 shadow-2xl backdrop-blur-md">
+    <details className={`fixed bottom-4 z-[80] w-52 rounded-xl border border-purple-400 bg-black/85 p-3 text-purple-200 shadow-2xl backdrop-blur-md sm:bottom-6 ${pathname?.startsWith("/archivo/") ? "right-[4.25rem] sm:right-[4.75rem]" : "right-4 sm:right-6"}`}>
       <summary className="cursor-pointer text-[10px] tracking-[0.16em]">MODO DESARROLLO</summary>
       <p className="mt-2 text-[13px] leading-relaxed text-purple-200">
         Accesos directos para probar escenas sin recorrer la historia.

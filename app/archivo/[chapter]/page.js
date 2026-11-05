@@ -35,26 +35,43 @@ export default function EscenaDinamica({ params }) {
   }
 
   if (chapterId === 'tienda') {
-    return <TiendaExperience {...chapterData} />;
+    return (
+      <>
+        <BackButton />
+        <TiendaExperience {...chapterData} />
+      </>
+    );
   }
 
   if (chapterId === 'carrusel') {
-    return <CarruselExperience {...chapterData} />;
+    return (
+      <>
+        <BackButton />
+        <CarruselExperience {...chapterData} />
+      </>
+    );
   }
 
   if (chapterId === 'sombrero') {
-    return <HatExperience {...chapterData} />;
+    return (
+      <>
+        <BackButton />
+        <HatExperience {...chapterData} />
+      </>
+    );
   }
 
   if (chapterId === 'final-a') {
-    return <FinalAExperience {...chapterData} />;
+    return (
+      <>
+        <BackButton />
+        <FinalAExperience {...chapterData} />
+      </>
+    );
   }
 
   const hubContent = (
     <main className="relative min-h-svh overflow-hidden bg-app-background p-6 text-app-text sm:p-8">
-      <div className="relative z-20">
-        <BackButton />
-      </div>
       {chapterId !== 'hub' && <ChapterInstructions {...chapterData} />}
       {chapterId === 'hub' ? (
          <HubPortal3D
@@ -145,8 +162,14 @@ export default function EscenaDinamica({ params }) {
   );
 
   return chapterId === 'hub' ? (
-    <HubExperience>{hubContent}</HubExperience>
+    <>
+      <BackButton />
+      <HubExperience>{hubContent}</HubExperience>
+    </>
   ) : (
-    hubContent
+    <>
+      <BackButton />
+      {hubContent}
+    </>
   );
 }
