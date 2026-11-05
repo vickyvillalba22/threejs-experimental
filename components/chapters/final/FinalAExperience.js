@@ -1,65 +1,71 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@/hooks/useProgress";
 import FinalAScene from "@/components/chapters/final/FinalAScene";
+import FinalRevealSequence from "@/components/chapters/final/FinalRevealSequence";
+import styles from "./FinalAExperience.module.css";
 
 export default function FinalAExperience({ title, description, instructions }) {
   const router = useRouter();
   const { saveWish, wish, wishes } = useProgress();
   const [value, setValue] = useState(wish || "");
   const [isSaved, setIsSaved] = useState(Boolean(wish));
+  const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isSceneReady, setIsSceneReady] = useState(false);
-  const [isPanelVisible, setIsPanelVisible] = useState(false);
+  const [areWishesReady, setAreWishesReady] = useState(false);
   const [hasSubmittedWish, setHasSubmittedWish] = useState(false);
-
-  useEffect(() => {
-    if (!isSceneReady) return undefined;
-
-    const revealTimer = window.setTimeout(() => {
-      setIsPanelVisible(true);
-    }, 5000);
-
-    return () => window.clearTimeout(revealTimer);
-  }, [isSceneReady]);
+  const [isWishAnimationComplete, setIsWishAnimationComplete] = useState(false);
+  const hasSubmittedWishRef = useRef(false);
+  const isPanelVisible = isSceneReady && areWishesReady;
 
   function submitWish(event) {
     event.preventDefault();
     if (!value.trim()) return;
     saveWish(value);
     setIsSaved(true);
+    hasSubmittedWishRef.current = true;
     setHasSubmittedWish(true);
-    setIsPanelVisible(false);
   }
 
   return (
-    <main className="final-a-experience">
-      <FinalAScene wishes={wishes} onReady={() => setIsSceneReady(true)} />
-      <section
-        className={`final-a-experience__loader ${isSceneReady ? "is-complete" : ""}`}
-        aria-live="polite"
-        aria-label="Cargando el final A"
-      >
-        <div className="final-a-experience__sigil" aria-hidden="true">
-          <span /><span /><span /><span />
-          <span /><span /><span /><span />
-        </div>
-        <p className="final-a-experience__loader-copy">
-          Las estrellas te guían hacia tu deseo.
-        </p>
-      </section>
+    <main className={styles.experience}>
+      {!isRevealComplete && (
+        <FinalRevealSequence onContinue={() => setIsRevealComplete(true)} />
+      )}
+      {isRevealComplete && (
+        <>
+          <FinalAScene
+            wishes={wishes}
+            onReady={() => setIsSceneReady(true)}
+            onWishesReady={() => {
+              if (hasSubmittedWishRef.current) {
+                setIsWishAnimationComplete(true);
+                return;
+              }
+              setAreWishesReady(true);
+            }}
+          />
+          {!isSceneReady && (
+            <section className={styles.sceneLoader} aria-live="polite">
+              <p className={styles.sceneLoaderCopy}>Las estrellas te guían hacia tu deseo.</p>
+            </section>
+          )}
+        </>
+      )}
       {isPanelVisible && !hasSubmittedWish && (
         <>
-          <div className="final-a-experience__glow" aria-hidden="true" />
-          <section className="final-a-experience__panel" aria-labelledby="final-a-title">
-            <p className="final-a-experience__eyebrow">FINAL A · EL TRIUNFO</p>
-            <h1 id="final-a-title">{title}</h1>
-            <p className="final-a-experience__chapter-copy">{description}</p>
-            <p className="final-a-experience__chapter-copy">{instructions}</p>
-            <form onSubmit={submitWish}>
-              <label htmlFor="legend-wish">Escribe tu deseo</label>
+          <div className={styles.glow} aria-hidden="true" />
+          <section className={styles.panel} aria-labelledby="final-a-title">
+
+            <h1 id="final-a-title" className={styles.title}>{title}</h1>
+            <p className={styles.chapterCopy}>{description}</p>
+
+            <form className={styles.form} onSubmit={submitWish}>
+              <label className={styles.label} htmlFor="legend-wish">Escribe tu deseo</label>
               <textarea
+                className={styles.textarea}
                 id="legend-wish"
                 value={value}
                 onChange={(event) => {
@@ -69,27 +75,27 @@ export default function FinalAExperience({ title, description, instructions }) {
                 rows={4}
                 placeholder="Mi deseo es..."
               />
-              <button type="submit">ENTREGAR EL DESEO</button>
+              <button className={styles.formButton} type="submit">ENTREGAR EL DESEO</button>
             </form>
             {isSaved && (
-              <p className="final-a-experience__saved" aria-live="polite">
+              <p className={styles.saved} aria-live="polite">
                 Legend ha guardado tu deseo.
               </p>
             )}
-            <button
-              type="button"
-              className="final-a-experience__home"
-              onClick={() => router.push("/")}
-            >
-              VOLVER AL INICIO
-            </button>
           </section>
         </>
       )}
       {hasSubmittedWish && (
+        <section className={styles.confirmation} aria-live="polite">
+          <p className={styles.confirmationCopy}>
+            Tu deseo ha sido recibido por el cielo. Ahora una nueva estrella lo guarda entre sus luces.
+          </p>
+        </section>
+      )}
+      {hasSubmittedWish && isWishAnimationComplete && (
         <button
           type="button"
-          className="final-a-experience__home final-a-experience__home--bottom"
+          className={`${styles.home} ${styles.homeBottom}`}
           onClick={() => router.push("/")}
         >
           VOLVER AL INICIO

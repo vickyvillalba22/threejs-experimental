@@ -8,11 +8,12 @@ import { ProgressProvider } from "@/hooks/useProgress";
 export default function ProgressExperience({ children }) {
   const pathname = usePathname();
   const isExperienceRoute = pathname?.startsWith("/archivo/");
+  const isFinalA = pathname === "/archivo/final-a";
 
   return (
     <ProgressProvider>
       {children}
-      {isExperienceRoute && <LegendProgress />}
+      {isExperienceRoute && !isFinalA && <LegendProgress />}
       <DevNavigation />
     </ProgressProvider>
   );

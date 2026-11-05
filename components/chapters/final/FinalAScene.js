@@ -21,10 +21,12 @@ function disposeObject(object) {
   });
 }
 
-export default function FinalAScene({ wishes = [], onReady }) {
+export default function FinalAScene({ wishes = [], onReady, onWishesReady }) {
   const containerRef = useRef(null);
   const wishesRef = useRef(wishes);
   const onReadyRef = useRef(onReady);
+  const onWishesReadyRef = useRef(onWishesReady);
+  const wishRevealReportedRef = useRef(false);
   const [hoveredWish, setHoveredWish] = useState(null);
 
   useEffect(() => {
@@ -36,6 +38,10 @@ export default function FinalAScene({ wishes = [], onReady }) {
   }, [onReady]);
 
   useEffect(() => {
+    onWishesReadyRef.current = onWishesReady;
+  }, [onWishesReady]);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) return undefined;
 
@@ -44,7 +50,13 @@ export default function FinalAScene({ wishes = [], onReady }) {
     const balcony = createBalcony(world, { onReady: () => onReadyRef.current?.() });
     createSky(world);
     createLighting(world);
-    const { wishStars, wishStarTexture, syncWishStars } = createEffects(world);
+    const {
+      wishStars,
+      wishStarTexture,
+      syncWishStars,
+      updateWishStars,
+      arrivalPulseTexture,
+    } = createEffects(world);
     const camera = createCamera();
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -72,13 +84,26 @@ export default function FinalAScene({ wishes = [], onReady }) {
 
     function animate() {
       animationFrameId = window.requestAnimationFrame(animate);
-      syncWishStars(wishesRef.current);
+      const wishesChanged = syncWishStars(wishesRef.current);
+      if (wishesChanged) wishRevealReportedRef.current = false;
+      const areWishesReady = updateWishStars(clock.getElapsedTime());
+
+      if (areWishesReady && !wishRevealReportedRef.current) {
+        wishRevealReportedRef.current = true;
+        onWishesReadyRef.current?.();
+      }
+
       wishStars.children.forEach((star) => {
         const phase = star.userData.phase || 0;
         const pulse = 0.72 + Math.sin(clock.getElapsedTime() * 1.5 + phase * 6.28) * 0.2;
-        star.material.opacity = pulse;
+        const revealOpacity = star.userData.revealOpacity ?? 1;
+        const revealProgress = star.userData.revealProgress ?? 1;
+        const revealFlash = star.userData.revealFlash ?? 0;
+        star.material.opacity = pulse * Math.min(1, revealOpacity + revealFlash * 0.35);
         star.position.y = star.userData.baseY
+          - (1 - revealProgress) * 0.65
           + Math.sin(clock.getElapsedTime() * 0.45 + phase * 6.28) * 0.08;
+        star.userData.arrivalPulse?.position.copy(star.position);
       });
       narrativeController.update(clock.getElapsedTime());
       renderer.render(scene, camera);
@@ -126,6 +151,7 @@ export default function FinalAScene({ wishes = [], onReady }) {
       world.userData.disposed = true;
       balcony.userData.dracoLoader?.dispose();
       wishStarTexture?.dispose();
+      arrivalPulseTexture?.dispose();
       disposeObject(scene);
       renderer.dispose();
       renderer.domElement.remove();

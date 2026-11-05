@@ -48,7 +48,7 @@ export const chapters = {
   // --- LOS 4 FINALES ---
   "final-a": {
     id: "final-a",
-    title: "Final A: El Triunfo",
+    title: "¡Felicidades!",
     description: "La figura está completa y cada fragmento pertenece al verdadero Legend. En el balcón del castillo, bajo un firmamento de estrellas eternas, el Maestro de Ceremonias te concede tu ansiado deseo.",
     instructions: "Espera a que aparezca el balcón y escribe un deseo para entregárselo a Legend."
   },
