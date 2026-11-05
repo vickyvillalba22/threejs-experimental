@@ -8,12 +8,19 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 const MASK_REVEAL_DURATION = 1000;
 const MASK_REVEAL_SCALE = 3;
 const MASK_REVEAL_VERTICAL_OFFSET = 0.75;
+const POCKET_WATCH_COLOR_REVEAL_DURATION = 1600;
 
-export default function TiendaScene({ onMaskClick, onClockHourChange, showPocketWatch = false }) {
+export default function TiendaScene({
+  onMaskClick,
+  onClockHourChange,
+  showPocketWatch = false,
+  pocketWatchAwakened = false,
+}) {
   const containerRef = useRef(null);
   const onMaskClickRef = useRef(onMaskClick);
   const onClockHourChangeRef = useRef(onClockHourChange);
   const showPocketWatchRef = useRef(showPocketWatch);
+  const pocketWatchAwakenedRef = useRef(pocketWatchAwakened);
 
   useEffect(() => {
     onMaskClickRef.current = onMaskClick;
@@ -27,6 +34,10 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
     showPocketWatchRef.current = showPocketWatch;
     window.dispatchEvent(new Event("resize"));
   }, [showPocketWatch]);
+
+  useEffect(() => {
+    pocketWatchAwakenedRef.current = pocketWatchAwakened;
+  }, [pocketWatchAwakened]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -232,6 +243,51 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
     let clockHandsCenter = null;
     let hourHand = null;
     let minuteHand = null;
+    const pocketWatchMaterialSnapshots = [];
+    let pocketWatchColorRevealStartedAt = null;
+    let pocketWatchColorRevealComplete = false;
+
+    function setPocketWatchMonochrome() {
+      pocketWatchMaterialSnapshots.forEach(({ material, snapshot }) => {
+        if (snapshot.colorRevealUniform) snapshot.colorRevealUniform.value = 0;
+        material.needsUpdate = true;
+      });
+    }
+
+    function restorePocketWatchMaterials() {
+      pocketWatchMaterialSnapshots.forEach(({ material, snapshot }) => {
+        if (snapshot.colorRevealUniform) snapshot.colorRevealUniform.value = 1;
+        material.needsUpdate = true;
+      });
+    }
+
+    function updatePocketWatchColorReveal(time) {
+      if (!pocketWatchAwakenedRef.current || pocketWatchColorRevealComplete) return;
+      if (!pocketWatchMaterialSnapshots.length) return;
+
+      if (pocketWatchColorRevealStartedAt === null) {
+        pocketWatchColorRevealStartedAt = time;
+      }
+
+      const progress = THREE.MathUtils.clamp(
+        (time - pocketWatchColorRevealStartedAt) / POCKET_WATCH_COLOR_REVEAL_DURATION,
+        0,
+        1,
+      );
+      const easedProgress = 1 - (1 - progress) ** 3;
+
+      pocketWatchMaterialSnapshots.forEach(({ material, snapshot }) => {
+        if (snapshot.colorRevealUniform) {
+          snapshot.colorRevealUniform.value = easedProgress;
+        }
+        material.needsUpdate = true;
+      });
+
+      if (progress >= 1) {
+        restorePocketWatchMaterials();
+        pocketWatchColorRevealComplete = true;
+      }
+    }
 
     function restoreMaskMaterials() {
       maskMaterialSnapshots.forEach(({ material, snapshot }) => {
@@ -394,9 +450,53 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
           if (!object.isMesh) return;
           object.castShadow = false;
           object.receiveShadow = false;
+
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          materials.forEach((material) => {
+            if (!material) return;
+
+            const color = material.color?.clone();
+            const emissive = material.emissive?.clone();
+            const snapshot = {
+              color,
+              emissive,
+              map: material.map,
+              emissiveMap: material.emissiveMap,
+              vertexColors: material.vertexColors,
+              colorRevealUniform: null,
+            };
+
+            material.onBeforeCompile = (shader) => {
+              const colorRevealUniform = { value: 0 };
+              shader.uniforms.uPocketWatchColorReveal = colorRevealUniform;
+              shader.fragmentShader = `uniform float uPocketWatchColorReveal;\n${shader.fragmentShader}`;
+              shader.fragmentShader = shader.fragmentShader.replace(
+                "#include <color_fragment>",
+                `#include <color_fragment>
+                float pocketWatchLuminance = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+                diffuseColor.rgb = mix(vec3(pocketWatchLuminance), diffuseColor.rgb, uPocketWatchColorReveal);`,
+              );
+              shader.fragmentShader = shader.fragmentShader.replace(
+                "#include <emissivemap_fragment>",
+                `#include <emissivemap_fragment>
+                float pocketWatchEmissiveLuminance = dot(totalEmissiveRadiance, vec3(0.2126, 0.7152, 0.0722));
+                totalEmissiveRadiance = mix(vec3(pocketWatchEmissiveLuminance), totalEmissiveRadiance, uPocketWatchColorReveal);`,
+              );
+              snapshot.colorRevealUniform = colorRevealUniform;
+            };
+            material.customProgramCacheKey = () => "pocket-watch-color-reveal";
+
+            pocketWatchMaterialSnapshots.push({
+              material,
+              snapshot,
+            });
+          });
         });
 
         pocketWatch.add(gltf.scene);
+        setPocketWatchMonochrome();
         // Algunos exportadores de Blender conservan el nombre exacto y otros
         // añaden sufijos. Buscamos ambos casos para no perder la interacción.
         gltf.scene.traverse((object) => {
@@ -1065,6 +1165,7 @@ export default function TiendaScene({ onMaskClick, onClockHourChange, showPocket
       const time = performance.now();
       const isClockPhase = showPocketWatchRef.current;
       updateSceneVisibility();
+      updatePocketWatchColorReveal(time);
       if (!isClockPhase) {
         if (!isBottleLifted) bottle.rotation.y = Math.sin(time * 0.0007) * 0.08;
         groundFog.material.uniforms.uTime.value = time * 0.001;

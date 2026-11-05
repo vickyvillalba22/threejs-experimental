@@ -13,6 +13,7 @@ export default function TiendaExperience({ title, description }) {
   const [secret, setSecret] = useState("");
   const [riddleAnswer, setRiddleAnswer] = useState("");
   const [clockHour, setClockHour] = useState(null);
+  const [isClockAwakening, setIsClockAwakening] = useState(false);
   const [message, setMessage] = useState("");
   const { collectArtifact } = useProgress();
 
@@ -56,6 +57,8 @@ export default function TiendaExperience({ title, description }) {
   }
 
   function setClock() {
+    if (isClockAwakening) return;
+
     const now = new Date();
     const currentHour = now.getHours() % 12 || 12;
 
@@ -65,6 +68,11 @@ export default function TiendaExperience({ title, description }) {
     }
 
     collectArtifact({ artifactId: "reloj-de-bolsillo", result: "correct" });
+    setIsClockAwakening(true);
+    window.setTimeout(() => setPhase("clock-fragment"), 1800);
+  }
+
+  function continueToCarousel() {
     router.push("/archivo/carrusel");
   }
 
@@ -80,7 +88,8 @@ export default function TiendaExperience({ title, description }) {
       <TiendaScene
         onMaskClick={handleGlassClick}
         onClockHourChange={setClockHour}
-        showPocketWatch={phase === "clock"}
+        showPocketWatch={phase === "clock" || phase === "clock-fragment"}
+        pocketWatchAwakened={isClockAwakening}
       />
 
       {hasFoundMask && phase === "shop" && (
@@ -139,7 +148,7 @@ export default function TiendaExperience({ title, description }) {
       {phase === "clock-riddle" && (
         <section className="absolute inset-0 z-20 grid place-items-center bg-black p-6 text-center">
           <form className="w-full max-w-md" onSubmit={solveClockRiddle}>
-            <p className="text-xs tracking-[0.18em] text-app-subtle">LA SIGUIENTE PIEZA ESTÁ OCULTA</p>
+            <p className="text-[22px] text-app-subtle">Resuelve la adivinanza para encontrar la siguiente pieza:</p>
             <p className="object-modal-copy mt-6 font-app-display text-app-text">
               No camino, pero avanzo.<br />
               No hablo, pero marco el momento.<br />
@@ -148,35 +157,60 @@ export default function TiendaExperience({ title, description }) {
             <input
               value={riddleAnswer}
               onChange={(event) => setRiddleAnswer(event.target.value)}
-              className="mt-8 w-full border border-app-border bg-black px-4 py-3 text-center text-app-text outline-none focus:border-app-accent"
+              className="mt-8 w-full border rounded-lg border-app-border bg-black px-4 py-3 text-center text-app-text outline-none focus:border-app-accent"
               placeholder="Tu respuesta"
               autoFocus
             />
-            <button type="submit" className="mt-4 border border-app-border px-5 py-3 text-xs tracking-[0.14em] hover:border-app-accent">
+            <button type="submit" className="mt-4 border rounded-lg border-app-border px-5 py-3 text-sm tracking-[0.14em] hover:border-app-accent">
               RESPONDER
             </button>
-            {message && <p className="mt-4 text-xs text-app-subtle" aria-live="polite">{message}</p>}
           </form>
         </section>
       )}
 
       {phase === "clock" && (
         <section className="pointer-events-none absolute inset-0 z-20 flex items-center bg-black/35 p-4 sm:p-8">
-          <div className="pointer-events-none w-full max-w-md border border-white/15 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:w-1/2 sm:max-w-lg sm:p-8">
-            <p className="text-xs tracking-[0.18em] text-app-subtle">EL RELOJ DE BOLSILLO</p>
-            <p className="mt-5 font-app-display text-3xl text-app-text">Ponlo en hora.</p>
-            <p className="object-modal-copy mt-3 leading-relaxed text-app-subtle">
+          <div className="pointer-events-none w-full max-w-md border border-white/15 rounded-lg bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:w-1/2 sm:max-w-lg sm:p-8">
+            <p className="text-md tracking-[0.18em] text-app-subtle">EL RELOJ</p>
+            <p className="mt-5 font-app-display text-4xl text-app-text">Ponlo en hora.</p>
+            <p className="text-[25px] mt-3 leading-relaxed text-app-subtle">
               Arrastra las agujas hasta marcar la hora correcta. Los minutos no importan.
             </p>
-            <p className="mt-5 text-sm text-app-subtle" aria-live="polite">
+            <p className="mt-5 text-[30px] text-app" aria-live="polite">
               Hora seleccionada: {clockHour || "—"}
             </p>
             <div>
-              <button type="button" onClick={setClock} className="pointer-events-auto mt-5 border border-app-border px-5 py-3 text-xs tracking-[0.14em] hover:border-app-accent">
-                AJUSTAR EL RELOJ
+              <button
+                type="button"
+                onClick={setClock}
+                disabled={isClockAwakening}
+                className="pointer-events-auto mt-5 border rounded-lg border-app-border px-5 py-3 text-md tracking-[0.14em] hover:border-app-accent disabled:cursor-wait disabled:opacity-60"
+              >
+                {isClockAwakening ? "DESPERTANDO EL RELOJ" : "AJUSTAR EL RELOJ"}
               </button>
             </div>
-            {message && <p className="mt-4 text-xs text-app-subtle" aria-live="polite">{message}</p>}
+          </div>
+        </section>
+      )}
+
+      {phase === "clock-fragment" && (
+        <section
+          className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 p-4 sm:p-8"
+          aria-label="Fragmento Reloj"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-white/25 bg-black/70 p-5 text-center shadow-[0_0_45px_rgba(255,255,255,0.16)] backdrop-blur-md sm:p-6">
+            <p className="text-md text-app-subtle">FRAGMENTO CONSEGUIDO</p>
+            <p className="mt-3 font-app-display text-3xl text-app-text">Reloj</p>
+            <p className="mt-2 text-[1.5rem] leading-relaxed text-app-text">
+              En Caraval el tiempo no se mide en horas, sino en la velocidad con la que la ilusión devora la cordura.
+            </p>
+            <button
+              type="button"
+              className="mt-5 w-fit border rounded-md border-app-border bg-app-surface px-4 py-2 text-lg text-app-text transition-colors hover:border-app-accent hover:text-app-accent focus-visible:outline-2 focus-visible:outline-app-text focus-visible:outline-offset-2"
+              onClick={continueToCarousel}
+            >
+              Continuar
+            </button>
           </div>
         </section>
       )}
