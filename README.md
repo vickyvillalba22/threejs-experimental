@@ -145,6 +145,10 @@ El repositorio no incluye datos de autoría o licencia de las pistas. Completar 
 - Cátedra: Programación III — UMAI.
 - Documentación complementaria de Three.js: [GUIA-THREEJS.md](./GUIA-THREEJS.md).
 
+## Declaración de uso de inteligencia artificial
+
+Durante el desarrollo se utilizaron herramientas de inteligencia artificial generativa como apoyo para la ideación, la organización de la documentación, la consulta técnica, la revisión de código. También fue utilizada para la optimización y organización del código. La selección de recursos, las decisiones narrativas y visuales, la integración de las escenas, las pruebas y la responsabilidad sobre el resultado final corresponden a la autora del proyecto.
+
 ## Instalación y configuración
 
 ### Requisitos
