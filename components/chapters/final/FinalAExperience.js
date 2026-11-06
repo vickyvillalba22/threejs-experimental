@@ -10,7 +10,14 @@ import styles from "./FinalAExperience.module.css";
 
 export default function FinalAExperience({ title, description, instructions }) {
   const router = useRouter();
-  const { saveWish, wish, wishes } = useProgress();
+  const {
+    authUser,
+    firebaseConfigured,
+    reset,
+    saveWish,
+    wish,
+    wishes,
+  } = useProgress();
   const [value, setValue] = useState(wish || "");
   const [isSaved, setIsSaved] = useState(Boolean(wish));
   const [isRevealComplete, setIsRevealComplete] = useState(false);
@@ -18,6 +25,7 @@ export default function FinalAExperience({ title, description, instructions }) {
   const [areWishesReady, setAreWishesReady] = useState(false);
   const [hasSubmittedWish, setHasSubmittedWish] = useState(false);
   const [isWishAnimationComplete, setIsWishAnimationComplete] = useState(false);
+  const [isReturningHome, setIsReturningHome] = useState(false);
   const hasSubmittedWishRef = useRef(false);
   const isPanelVisible = isSceneReady && areWishesReady;
 
@@ -28,6 +36,24 @@ export default function FinalAExperience({ title, description, instructions }) {
     setIsSaved(true);
     hasSubmittedWishRef.current = true;
     setHasSubmittedWish(true);
+  }
+
+  async function returnHome() {
+    if (isReturningHome) return;
+
+    setIsReturningHome(true);
+    const isAnonymousMode = authUser?.isAnonymous || (!firebaseConfigured && !authUser);
+
+    try {
+      if (isAnonymousMode) {
+        await reset();
+      }
+    } catch (error) {
+      // El progreso local ya fue reiniciado; el deseo se conserva por separado.
+      console.warn("No se pudo sincronizar el reinicio del progreso.", error);
+    } finally {
+      router.push("/");
+    }
   }
 
   return (
@@ -97,9 +123,10 @@ export default function FinalAExperience({ title, description, instructions }) {
         <button
           type="button"
           className={`${styles.home} ${styles.homeBottom}`}
-          onClick={() => router.push("/")}
+          onClick={returnHome}
+          disabled={isReturningHome}
         >
-          VOLVER AL INICIO
+          {isReturningHome ? "REINICIANDO…" : "VOLVER AL INICIO"}
         </button>
       )}
     </main>

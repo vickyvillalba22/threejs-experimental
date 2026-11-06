@@ -34,6 +34,7 @@ import { chapters } from "@/data/chapters";
 import { getFirebaseServices, hasFirebaseConfig } from "@/lib/firebase";
 
 const STORAGE_KEY = "signal-88-progress";
+const WISHES_STORAGE_KEY = "signal-88-wishes";
 const PROGRESS_PERSISTENCE_ENABLED = process.env.NEXT_PUBLIC_DISABLE_PROGRESS_PERSISTENCE !== "true";
 export const LEGEND_FRAGMENT_COUNT = 8;
 const VALID_CLUE_IDS = new Set(Object.values(chapters).map((chapter) => chapter.id));
@@ -74,6 +75,17 @@ function normalizeFragments(value) {
   return fragments.sort((a, b) => a.index - b.index);
 }
 
+function normalizeWishes(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((wish) => wish && typeof wish.text === "string" && wish.text.trim())
+    .map((wish, index) => ({
+      id: typeof wish.id === "string" ? wish.id : `local-${index}`,
+      text: wish.text.trim().slice(0, 280),
+    }));
+}
+
 function readLocal() {
   if (!PROGRESS_PERSISTENCE_ENABLED) {
     window.localStorage.removeItem(STORAGE_KEY);
@@ -104,6 +116,23 @@ function saveLocal({ clues, artifacts, fragments, wish = "" }) {
     STORAGE_KEY,
     JSON.stringify({ clues, artifacts, fragments, wish }),
   );
+}
+
+function readLocalWishes() {
+  if (!PROGRESS_PERSISTENCE_ENABLED) return [];
+
+  try {
+    return normalizeWishes(
+      JSON.parse(window.localStorage.getItem(WISHES_STORAGE_KEY) || "[]"),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalWishes(wishes) {
+  if (!PROGRESS_PERSISTENCE_ENABLED) return;
+  window.localStorage.setItem(WISHES_STORAGE_KEY, JSON.stringify(wishes));
 }
 
 function getProvider(user) {
@@ -149,6 +178,7 @@ function useProgressState() {
 
   useEffect(() => {
     const localProgress = readLocal();
+    const localWishes = readLocalWishes();
     cluesRef.current = localProgress.clues;
     artifactsRef.current = localProgress.artifacts;
     fragmentsRef.current = localProgress.fragments;
@@ -158,6 +188,7 @@ function useProgressState() {
       setArtifacts(localProgress.artifacts);
       setFragments(localProgress.fragments);
       setWish(localProgress.wish || "");
+      setWishes(localWishes);
       saveLocal(localProgress);
       setReady(true);
     }, 0);
@@ -428,6 +459,11 @@ function useProgressState() {
 
   const saveWish = useCallback((value) => {
     const nextWish = value.trim();
+    const wishEntry = {
+      id: `local-${Date.now()}`,
+      text: nextWish.slice(0, 280),
+    };
+
     setWish(nextWish);
     saveLocal({
       clues: cluesRef.current,
@@ -437,13 +473,10 @@ function useProgressState() {
     });
 
     if (nextWish) {
-      setWishes((currentWishes) => [
-        ...currentWishes,
-        {
-          id: `pending-${Date.now()}`,
-          text: nextWish.slice(0, 280),
-        },
-      ]);
+      if (!hasFirebaseConfig) {
+        saveLocalWishes([...readLocalWishes(), wishEntry]);
+      }
+      setWishes((currentWishes) => [...currentWishes, wishEntry]);
     }
 
     if (remoteUser && hasFirebaseConfig && PROGRESS_PERSISTENCE_ENABLED && nextWish) {

@@ -81,59 +81,49 @@ function drawLetterCanvas(canvas, showContent, revealProgress) {
 
     context.textAlign = "left";
     context.fillStyle = "#3f2926";
-    context.font = "54px Georgia, serif";
+    context.font = "64px Georgia, serif";
     let currentY = 390;
-    currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 72, revealProgress, canvas.height) + 30;
+    currentY = drawWrappedText(context, "Estimado participante:", margin, currentY, textWidth, 84, revealProgress, canvas.height) + 30;
     currentY = drawWrappedText(
       context,
-      "Has sido invitado a cruzar las fronteras de Caraval, donde los deseos cobran vida y la ilusión se confunde con la realidad.",
+      "Has sido invitado a Caraval, donde los deseos cobran vida y la ilusión se confunde con la realidad.",
       margin,
       currentY,
       textWidth,
-      72,
+      84,
       revealProgress,
       canvas.height,
     ) + 30;
 
     context.fillStyle = "#70252c";
-    context.font = "700 42px Georgia, serif";
-    drawText(context, "Su Cometido:", margin, currentY, revealProgress, canvas.height);
-    currentY += 76;
+    context.font = "700 52px Georgia, serif";
+    drawText(context, "Tu misión:", margin, currentY, revealProgress, canvas.height);
+    currentY += 86;
     context.fillStyle = "#3f2926";
-    context.font = "54px Georgia, serif";
+    context.font = "64px Georgia, serif";
     currentY = drawWrappedText(
       context,
-      "Recorre la feria y encuentra los objetos que guardan los fragmentos de Legend. Solo los correctos revelarán su verdadera identidad.",
+      "Recorre la feria y encuentra los objetos que guardan fragmentos de Legend.",
       margin,
       currentY,
       textWidth,
-      72,
+      84,
       revealProgress,
       canvas.height,
     ) + 30;
-    currentY = drawWrappedText(
-      context,
-      "La magia tiene un precio. No todo lo que brilla pertenece a Legend. Antes de comenzar, recuerda nuestra única advertencia:",
-      margin,
-      currentY,
-      textWidth,
-      72,
-      revealProgress,
-      canvas.height,
-    ) + 32;
 
     context.textAlign = "center";
     context.fillStyle = "#70252c";
-    context.font = "italic 700 54px Georgia, serif";
-    drawText(context, '“Recuerda, es solo un juego...”', canvas.width / 2, currentY, revealProgress, canvas.height);
+    context.font = "italic 700 64px Georgia, serif";
+    drawText(context, "«Recuerda: es solo un juego…»", canvas.width / 2, currentY, revealProgress, canvas.height);
     context.textAlign = "right";
-    context.font = "italic 46px Georgia, serif";
+    context.font = "italic 52px Georgia, serif";
     drawText(context, "— Legend", canvas.width - margin, currentY + 70, revealProgress, canvas.height);
 
     context.textAlign = "center";
     context.fillStyle = "#70252c";
-    context.font = "700 34px Georgia, serif";
-    drawText(context, "MANTENÉ PRESIONADO SOBRE EL SELLO PARA PINTARLO", canvas.width / 2, canvas.height - 120, revealProgress, canvas.height);
+    context.font = "700 70px Georgia, serif";
+    drawText(context, "mantiene presionado sobre el sello", canvas.width / 2, canvas.height - 120, revealProgress, canvas.height);
   } else {
     context.textAlign = "center";
     context.fillStyle = "rgba(79, 32, 36, 0.5)";

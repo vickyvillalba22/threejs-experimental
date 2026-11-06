@@ -98,7 +98,7 @@ export default function HomeExperience({ devTarget = "" }) {
         </button>
       </div>
 
-      <section className="fixed inset-0 z-[30] flex flex-col items-center justify-center bg-black/25 p-6 text-center gap-10">
+      <section className="fixed inset-0 z-[30] flex select-none flex-col items-center justify-center gap-10 bg-black/25 p-6 text-center">
         <p className="mb-[10px] text-[20px] tracking-[0.14em]">
           EXPERIENCIA TRANSMEDIA
         </p>

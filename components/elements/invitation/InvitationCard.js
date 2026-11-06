@@ -54,6 +54,7 @@ function RoseSymbol({ progress }) {
 export default function InvitationCard({ onClose, onEnterHub }) {
   const sceneContainerRef = useRef(null);
   const drawingCanvasRef = useRef(null);
+  const particleCanvasRef = useRef(null);
   const penGroupRef = useRef(null);
   const holdAnimationRef = useRef(null);
   const holdStartRef = useRef(null);
@@ -69,6 +70,10 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const coinSaveRequestRef = useRef(null);
   const drawingRef = useRef({ active: false, lastPoint: null });
   const penDragRef = useRef({ active: false });
+  const inkParticlesRef = useRef([]);
+  const particleAnimationRef = useRef(null);
+  const { collectArtifact, collectedArtifacts } = useProgress();
+  const hasPen = collectedArtifacts.has("pluma-tinta");
   const [roseProgress, setRoseProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasDrawnLetter, setHasDrawnLetter] = useState(false);
@@ -79,12 +84,10 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   const [isCoinVisible, setIsCoinVisible] = useState(false);
   const [isAurioRevealed, setIsAurioRevealed] = useState(false);
   const [isCoinSaving, setIsCoinSaving] = useState(false);
-  const [aurioMessage, setAurioMessage] = useState("");
+  const [isLetterContentVisible, setIsLetterContentVisible] = useState(hasPen);
   const [isPenFragmentMessageVisible, setIsPenFragmentMessageVisible] = useState(false);
-  const { collectArtifact, collectedArtifacts } = useProgress();
-
-  const hasPen = collectedArtifacts.has("pluma-tinta");
   const hasRevealedLetter = hasDrawnLetter || hasPen;
+  const shouldShowLetterContent = isLetterContentVisible || hasPen;
   const hasAurio = hasPaintedAurio || collectedArtifacts.has("aurio");
 
   function movePenToPointer(event) {
@@ -124,6 +127,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
   function handlePenPointerMove(event) {
     if (!penDragRef.current.active) return;
     movePenToPointer(event);
+    if (isPointerOverLetter(event)) emitInkParticles(event, 1);
   }
 
   function handlePenPointerUp(event) {
@@ -170,6 +174,94 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     return () => observer.disconnect();
   }, [hasRevealedLetter, isHoldingPen]);
 
+  function emitInkParticles(event, intensity = 1) {
+    const canvas = particleCanvasRef.current;
+    const container = sceneContainerRef.current;
+    if (!canvas || !container) return;
+
+    const bounds = container.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    const amount = Math.max(2, Math.round((2 + Math.random() * 3) * intensity));
+
+    for (let index = 0; index < amount; index += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.35 + Math.random() * 1.25;
+      inkParticlesRef.current.push({
+        x: x + (Math.random() - 0.5) * 5,
+        y: y + (Math.random() - 0.5) * 5,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.35,
+        size: 1.2 + Math.random() * 2.5,
+        age: 0,
+        life: 280 + Math.random() * 260,
+      });
+    }
+
+    if (inkParticlesRef.current.length > 180) {
+      inkParticlesRef.current.splice(0, inkParticlesRef.current.length - 180);
+    }
+  }
+
+  useEffect(() => {
+    const canvas = particleCanvasRef.current;
+    const container = sceneContainerRef.current;
+    if (!canvas || !container || hasRevealedLetter) return undefined;
+
+    const context = canvas.getContext("2d");
+    let lastTimestamp = performance.now();
+
+    function resizeCanvas() {
+      const bounds = container.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(bounds.width * pixelRatio));
+      canvas.height = Math.max(1, Math.floor(bounds.height * pixelRatio));
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.scale(pixelRatio, pixelRatio);
+    }
+
+    function animateParticles(timestamp) {
+      const delta = Math.min(timestamp - lastTimestamp, 40);
+      lastTimestamp = timestamp;
+      const bounds = container.getBoundingClientRect();
+      context.clearRect(0, 0, bounds.width, bounds.height);
+
+      inkParticlesRef.current = inkParticlesRef.current.filter((particle) => {
+        particle.age += delta;
+        if (particle.age >= particle.life) return false;
+
+        particle.x += particle.vx * (delta / 16.67);
+        particle.y += particle.vy * (delta / 16.67);
+        particle.vy += 0.025 * (delta / 16.67);
+        const lifeProgress = particle.age / particle.life;
+        const alpha = (1 - lifeProgress) * 0.8;
+
+        context.beginPath();
+        context.fillStyle = `rgba(173, 31, 45, ${alpha})`;
+        context.arc(particle.x, particle.y, particle.size * (1 - lifeProgress * 0.35), 0, Math.PI * 2);
+        context.fill();
+        return true;
+      });
+
+      particleAnimationRef.current = window.requestAnimationFrame(animateParticles);
+    }
+
+    resizeCanvas();
+    const observer = new ResizeObserver(resizeCanvas);
+    observer.observe(container);
+    particleAnimationRef.current = window.requestAnimationFrame(animateParticles);
+
+    return () => {
+      observer.disconnect();
+      if (particleAnimationRef.current !== null) {
+        window.cancelAnimationFrame(particleAnimationRef.current);
+        particleAnimationRef.current = null;
+      }
+      inkParticlesRef.current = [];
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  }, [hasRevealedLetter]);
+
   function animateRoseHold(timestamp) {
     if (holdStartRef.current === null) holdStartRef.current = timestamp;
     const progress = Math.min((timestamp - holdStartRef.current) / HOLD_DURATION, 1);
@@ -180,7 +272,6 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       holdAnimationRef.current = null;
       holdStartRef.current = null;
       if (!hasRevealedLetter) {
-        setAurioMessage("Primero debes usar la pluma sobre la carta.");
         return;
       }
 
@@ -189,7 +280,6 @@ export default function InvitationCard({ onClose, onEnterHub }) {
         setHasPaintedAurio(true);
         transformationRef.current = { active: true, startedAt: performance.now() };
         setIsTransforming(true);
-        setAurioMessage("La rosa se transforma en una moneda de Aurio.");
         transformationTimeoutRef.current = window.setTimeout(() => {
           coinEntranceRef.current = { active: true, startedAt: performance.now() };
           setIsCoinEntering(true);
@@ -239,6 +329,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     if (hasRevealedLetter) return;
     penRevealRef.current = { active: true, completed: false, startedAt: performance.now() };
     setHasDrawnLetter(true);
+    setIsLetterContentVisible(false);
     setIsHoldingPen(false);
     setIsPenFragmentMessageVisible(true);
     if (penFragmentMessageTimeoutRef.current !== null) {
@@ -247,6 +338,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     penFragmentMessageTimeoutRef.current = window.setTimeout(() => {
       collectArtifact({ artifactId: "pluma-tinta", result: "correct" });
       setIsPenFragmentMessageVisible(false);
+      setIsLetterContentVisible(true);
       penFragmentMessageTimeoutRef.current = null;
     }, PEN_FRAGMENT_MESSAGE_DURATION);
     drawingRef.current = { active: false, lastPoint: null };
@@ -269,6 +361,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     event.currentTarget.setPointerCapture(event.pointerId);
     drawingRef.current.active = true;
     drawingRef.current.lastPoint = point;
+    emitInkParticles(event, 1.5);
     const context = event.currentTarget.getContext("2d");
     context.beginPath();
     context.moveTo(point.x, point.y);
@@ -283,6 +376,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     context.lineTo(point.x, point.y);
     context.stroke();
     drawingRef.current.lastPoint = point;
+    emitInkParticles(event);
   }
 
   function handleDrawingPointerUp(event) {
@@ -334,16 +428,16 @@ export default function InvitationCard({ onClose, onEnterHub }) {
     letterGroup.visible = !isAurioRevealed;
     scene.add(letterGroup);
     const shouldAnimateLetterText =
-      hasRevealedLetter &&
+      shouldShowLetterContent &&
       !letterRevealPlayedRef.current &&
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let letterRevealStep = shouldAnimateLetterText ? 0 : LETTER_TEXT_REVEAL_STEPS;
     const letterRevealStartedAt = performance.now();
     const texture = createLetterTexture(
-      hasRevealedLetter,
+      shouldShowLetterContent,
       shouldAnimateLetterText ? 0 : 1,
     );
-    if (hasRevealedLetter && !shouldAnimateLetterText) {
+    if (shouldShowLetterContent && !shouldAnimateLetterText) {
       letterRevealPlayedRef.current = true;
     }
     const loader = new GLTFLoader();
@@ -758,7 +852,7 @@ export default function InvitationCard({ onClose, onEnterHub }) {
       renderer.dispose();
       container.removeChild(renderer.domElement);
     };
-  }, [hasPen, hasRevealedLetter, isAurioRevealed, isCoinEntering, isCoinVisible]);
+  }, [hasPen, hasRevealedLetter, isAurioRevealed, isCoinEntering, isCoinVisible, shouldShowLetterContent]);
 
   useEffect(() => () => {
     if (holdAnimationRef.current !== null) window.cancelAnimationFrame(holdAnimationRef.current);
@@ -788,6 +882,35 @@ export default function InvitationCard({ onClose, onEnterHub }) {
           <p className={styles.loading}>
             ABRIENDO LA INVITACIÓN…
           </p>
+        )}
+        {!hasRevealedLetter && (
+          <canvas
+            ref={particleCanvasRef}
+            className={styles.particleCanvas}
+            aria-hidden="true"
+          />
+        )}
+        {!isLoading && !hasRevealedLetter && !isHoldingPen && (
+          <motion.div
+            className={styles.penInstruction}
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: [0.55, 1, 0.55], x: [8, 0, 8] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            aria-hidden="true"
+          >
+            <motion.svg
+              className={styles.penInstructionArrow}
+              viewBox="0 0 120 54"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              animate={{ x: [0, -5, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <path d="M114 12C88 10 70 13 54 23C39 32 25 39 7 39" />
+              <path d="M18 30L7 39L20 45" />
+            </motion.svg>
+            <span>Dibuja con la pluma<br />sobre la carta</span>
+          </motion.div>
         )}
         {!hasRevealedLetter && !isHoldingPen && (
           <button
@@ -837,25 +960,6 @@ export default function InvitationCard({ onClose, onEnterHub }) {
         )}
       </div>
       <h2 id="invitation-title" className={styles.visuallyHidden}>Invitación a la Isla de los Sueños</h2>
-      <section className={styles.interactions} aria-label="Objetos de la invitación">
-        <p className={styles.eyebrow}>PRIMEROS OBJETOS</p>
-        <p className={styles.message}>
-          {!hasRevealedLetter
-            ? "Escribas lo que escribas, ella ya sabe lo que quiere decirte."
-            : !hasAurio
-              ? "La carta ha despertado. Mantén presionada la rosa para pintarla."
-              : "La carta guarda sus secretos. Ya puedes dirigirte a Caraval."}
-        </p>
-        {isHoldingPen && !hasRevealedLetter && (
-          <p className={styles.hint}>Dibuja cualquier forma sobre la carta para revelar su contenido.</p>
-        )}
-        {hasRevealedLetter && !hasAurio && (
-          <p className={styles.hint}>Mantén presionada la rosa de la carta.</p>
-        )}
-        {aurioMessage && (
-          <p className={styles.result} aria-live="polite">{aurioMessage}</p>
-        )}
-      </section>
       <AnimatePresence>
         {isPenFragmentMessageVisible && !hasPen && (
           <motion.section
