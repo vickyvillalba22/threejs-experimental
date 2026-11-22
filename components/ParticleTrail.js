@@ -30,7 +30,36 @@ const fragmentShader = `
   }
 `;
 
-export default function ParticleTrail({ onReveal }) {
+const electricVertexShader = `
+  attribute float aAlpha;
+
+  varying float vAlpha;
+
+  void main() {
+    vAlpha = aAlpha;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const electricFragmentShader = `
+  varying float vAlpha;
+
+  void main() {
+    gl_FragColor = vec4(1.0, 1.0, 1.0, vAlpha);
+  }
+`;
+
+const MAX_ELECTRIC_ARCS = 96;
+const MAX_ELECTRIC_SEGMENTS = 720;
+
+export default function ParticleTrail({
+  onReveal,
+  gestureDensity = 1,
+  gestureSpread = 1,
+  gestureSize = 1,
+  gestureSparks = 0,
+  electricityDensity = 0,
+}) {
   const canvasRef = useRef(null);
   const onRevealRef = useRef(onReveal);
 
@@ -73,7 +102,33 @@ export default function ParticleTrail({ onReveal }) {
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
+    const electricPositions = new Float32Array(MAX_ELECTRIC_SEGMENTS * 2 * 3);
+    const electricAlphas = new Float32Array(MAX_ELECTRIC_SEGMENTS * 2);
+    const electricGeometry = new THREE.BufferGeometry();
+    electricGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(electricPositions, 3),
+    );
+    electricGeometry.setAttribute(
+      "aAlpha",
+      new THREE.BufferAttribute(electricAlphas, 1),
+    );
+
+    const electricMaterial = new THREE.ShaderMaterial({
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fragmentShader: electricFragmentShader,
+      transparent: true,
+      vertexShader: electricVertexShader,
+    });
+    const electricLines = new THREE.LineSegments(
+      electricGeometry,
+      electricMaterial,
+    );
+    scene.add(electricLines);
+
     const particles = [];
+    const electricArcs = [];
     let aspect = 1;
     let hasPointer = false;
     let previousPointer = null;
@@ -96,7 +151,15 @@ export default function ParticleTrail({ onReveal }) {
       material.uniforms.uResolution.value.set(width, height);
     }
 
-    function addParticle(x, y, velocityX, velocityY, lifeMultiplier = 1) {
+    function addParticle(
+      x,
+      y,
+      velocityX,
+      velocityY,
+      lifeMultiplier = 1,
+      spreadMultiplier = 1,
+      sizeMultiplier = 1,
+    ) {
       if (particles.length >= MAX_PARTICLES) {
         particles.shift();
       }
@@ -105,11 +168,47 @@ export default function ParticleTrail({ onReveal }) {
         alpha: 0.55 + Math.random() * 0.45,
         age: 0,
         life: (0.45 + Math.random() * 0.45) * lifeMultiplier,
-        size: 0.012 + Math.random() * 0.018,
+        size: (0.012 + Math.random() * 0.018) * sizeMultiplier,
         vx: velocityX * (0.55 + Math.random() * 0.35),
         vy: velocityY * (0.55 + Math.random() * 0.35),
-        x: x + (Math.random() - 0.5) * 0.018,
-        y: y + (Math.random() - 0.5) * 0.018,
+        x: x + (Math.random() - 0.5) * 0.018 * spreadMultiplier,
+        y: y + (Math.random() - 0.5) * 0.018 * spreadMultiplier,
+      });
+    }
+
+    function addElectricArc(x, y, velocityX, velocityY) {
+      if (electricArcs.length >= MAX_ELECTRIC_ARCS) {
+        electricArcs.shift();
+      }
+
+      const movementAngle = Math.atan2(velocityY, velocityX);
+      const angle = movementAngle + (Math.random() - 0.5) * 1.8;
+      const normalX = -Math.sin(angle);
+      const normalY = Math.cos(angle);
+      const segmentCount = 4 + Math.floor(Math.random() * 4);
+      const length = 0.08 + Math.random() * 0.12;
+      const startX = x + (Math.random() - 0.5) * 0.05;
+      const startY = y + (Math.random() - 0.5) * 0.05;
+      const points = [];
+
+      for (let index = 0; index <= segmentCount; index += 1) {
+        const progress = index / segmentCount;
+        const jitter =
+          index === 0 || index === segmentCount
+            ? 0
+            : (Math.random() - 0.5) * 0.07;
+
+        points.push({
+          x: startX + Math.cos(angle) * length * progress + normalX * jitter,
+          y: startY + Math.sin(angle) * length * progress + normalY * jitter,
+        });
+      }
+
+      electricArcs.push({
+        age: 0,
+        life: 0.12 + Math.random() * 0.16,
+        points,
+        strength: 0.75 + Math.random() * 0.25,
       });
     }
 
@@ -194,15 +293,49 @@ export default function ParticleTrail({ onReveal }) {
       const deltaY = nextY - previousPointer.y;
       const distance = Math.hypot(deltaX, deltaY);
       const steps = Math.min(18, Math.max(3, Math.ceil(distance * 42)));
+      const isGestureTrail = isDrawingGesture;
+      const emissionSteps = isGestureTrail
+        ? Math.ceil(steps * Math.max(1, gestureDensity))
+        : steps;
+      const spreadMultiplier = isGestureTrail ? gestureSpread : 1;
+      const sizeMultiplier = isGestureTrail ? gestureSize : 1;
+      const sparkCount = isGestureTrail
+        ? Math.max(0, Math.ceil(gestureSparks))
+        : 0;
+      const electricArcCount = isGestureTrail
+        ? Math.max(0, Math.ceil(electricityDensity))
+        : 0;
 
-      for (let index = 1; index <= steps; index += 1) {
-        const progress = index / steps;
+      for (let index = 1; index <= emissionSteps; index += 1) {
+        const progress = index / emissionSteps;
         addParticle(
           previousPointer.x + deltaX * progress,
           previousPointer.y + deltaY * progress,
           deltaX * 2.4,
           deltaY * 2.4,
+          1,
+          spreadMultiplier,
+          sizeMultiplier,
         );
+      }
+
+      for (let index = 0; index < sparkCount; index += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.08 + Math.random() * 0.18;
+
+        addParticle(
+          nextX,
+          nextY,
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed,
+          0.35,
+          spreadMultiplier * 0.8,
+          sizeMultiplier * 1.8,
+        );
+      }
+
+      for (let index = 0; index < electricArcCount; index += 1) {
+        addElectricArc(nextX, nextY, deltaX, deltaY);
       }
 
       if (isDrawingGesture) {
@@ -259,6 +392,45 @@ export default function ParticleTrail({ onReveal }) {
       geometry.attributes.position.needsUpdate = true;
       geometry.attributes.aAlpha.needsUpdate = true;
       geometry.attributes.aSize.needsUpdate = true;
+
+      let activeElectricSegments = 0;
+      for (const arc of electricArcs) {
+        arc.age += delta;
+        if (arc.age >= arc.life) continue;
+
+        const lifeProgress = arc.age / arc.life;
+        const alpha = arc.strength * (1 - lifeProgress) ** 1.5;
+
+        for (let index = 0; index < arc.points.length - 1; index += 1) {
+          if (activeElectricSegments >= MAX_ELECTRIC_SEGMENTS) break;
+
+          const start = arc.points[index];
+          const end = arc.points[index + 1];
+          const vertexOffset = activeElectricSegments * 2;
+          const positionOffset = vertexOffset * 3;
+          const segmentAlpha = alpha * (0.7 + Math.random() * 0.3);
+
+          electricPositions[positionOffset] = start.x;
+          electricPositions[positionOffset + 1] = start.y;
+          electricPositions[positionOffset + 2] = 0.02;
+          electricPositions[positionOffset + 3] = end.x;
+          electricPositions[positionOffset + 4] = end.y;
+          electricPositions[positionOffset + 5] = 0.02;
+          electricAlphas[vertexOffset] = segmentAlpha;
+          electricAlphas[vertexOffset + 1] = segmentAlpha;
+          activeElectricSegments += 1;
+        }
+      }
+
+      electricArcs.splice(
+        0,
+        electricArcs.length,
+        ...electricArcs.filter((arc) => arc.age < arc.life),
+      );
+      electricGeometry.setDrawRange(0, activeElectricSegments * 2);
+      electricGeometry.attributes.position.needsUpdate = true;
+      electricGeometry.attributes.aAlpha.needsUpdate = true;
+
       renderer.render(scene, camera);
       animationFrame = requestAnimationFrame(render);
     }
@@ -280,9 +452,17 @@ export default function ParticleTrail({ onReveal }) {
       window.removeEventListener("pointercancel", handlePointerUp);
       geometry.dispose();
       material.dispose();
+      electricGeometry.dispose();
+      electricMaterial.dispose();
       renderer.dispose();
     };
-  }, []);
+  }, [
+    electricityDensity,
+    gestureDensity,
+    gestureSize,
+    gestureSparks,
+    gestureSpread,
+  ]);
 
   return <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-[35] h-full w-full" aria-hidden="true" />;
 }

@@ -1,6 +1,5 @@
-import HomeExperience from "@/components/HomeExperience";
+import HomeSelector from "@/components/HomeSelector";
 
-export default async function Home({ searchParams }) {
-  const params = await searchParams;
-  return <HomeExperience devTarget={params?.dev || ""} />;
+export default function Home() {
+  return <HomeSelector />;
 }

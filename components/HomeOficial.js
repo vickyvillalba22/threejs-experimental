@@ -8,7 +8,7 @@ import ExperienceIntroduction from "@/components/onboarding/ExperienceIntroducti
 import ParticleTrail from "@/components/ParticleTrail";
 import { useProgress } from "@/hooks/useProgress";
 
-export default function HomeExperience({ devTarget = "" }) {
+export default function HomeOficial({ devTarget = "" }) {
   const router = useRouter();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isEntranceRevealed, setIsEntranceRevealed] = useState(false);

@@ -11,11 +11,13 @@ import PageTransition from "@/components/transitions/PageTransition";
 export default function ProgressExperience({ children }) {
   const pathname = usePathname();
   const ambientTrack = getAmbientTrack(pathname);
+  const isOfficialRoute =
+    pathname === "/oficial" || pathname?.startsWith("/archivo/");
   const isExperienceRoute = pathname?.startsWith("/archivo/");
   const isFinalA = pathname === "/archivo/final-a";
 
-  return (
-    <ProgressProvider>
+  const officialContent = (
+    <>
       <AmbientMusic
         src={ambientTrack}
         showControl={Boolean(ambientTrack)}
@@ -24,6 +26,12 @@ export default function ProgressExperience({ children }) {
       <PageTransition>{children}</PageTransition>
       {isExperienceRoute && !isFinalA && <LegendProgress />}
       {isExperienceRoute && <HomeButton />}
-    </ProgressProvider>
+    </>
   );
+
+  if (!isOfficialRoute) {
+    return <PageTransition>{children}</PageTransition>;
+  }
+
+  return <ProgressProvider>{officialContent}</ProgressProvider>;
 }

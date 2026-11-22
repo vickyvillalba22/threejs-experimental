@@ -1,5 +1,5 @@
 const AMBIENT_TRACKS = {
-  "/": "/audio/home.mp3",
+  "/oficial": "/audio/home.mp3",
   "/archivo/hub": "/audio/hub.mp3",
   "/archivo/tienda": "/audio/tienda.mp3",
   "/archivo/carrusel": "/audio/carrusel.mp3",

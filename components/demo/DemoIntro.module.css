@@ -1,0 +1,145 @@
+.intro {
+  position: relative;
+  display: flex;
+  min-height: 100svh;
+  justify-content: left;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.62)),
+    url("/imgs/demo-presentation.jpeg") center center / cover no-repeat;
+}
+
+.atmosphere {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.portalStage {
+  position: absolute;
+  top: 80%;
+  right: 5vw;
+  width: min(32vw, 24rem);
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.atmosphere {
+  width: min(92vw, 62rem);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 0, rgba(255, 255, 255, 0.05) 26%, transparent 66%);
+  filter: blur(28px);
+  opacity: 0.6;
+  z-index: -2;
+}
+
+.portal {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 50%;
+  box-shadow:
+    0 0 28px rgba(255, 255, 255, 0.22),
+    inset 0 0 28px rgba(255, 255, 255, 0.12);
+  filter: blur(0.3px);
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  margin: 40px;
+  z-index: 1;
+  width: 40%;
+  text-align: center;
+}
+
+.content p {
+  margin: 0;
+  color: var(--color-text);
+  text-align: left;
+  font-size: 3rem;
+  font-weight: 200;
+  line-height: 1.18;
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.16);
+}
+
+.content p {
+  white-space: pre-wrap;
+}
+
+.caret {
+  display: inline-block;
+  margin-left: 0.08em;
+  animation: caret-blink 780ms steps(1, end) infinite;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--font-secondary), Arial, Helvetica, sans-serif;
+  font-size: 0.72em;
+  transform: translateY(-0.04em);
+}
+
+.startButton {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  translate: -50% -50%;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: var(--font-secondary), Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.22em;
+  padding: 0.6rem 1.8rem;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.startButton:hover {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 0 28px rgba(255, 255, 255, 0.32);
+}
+
+@keyframes caret-blink {
+  0%,
+  48% {
+    opacity: 1;
+  }
+
+  49%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .portalStage {
+    top: 78%;
+    right: auto;
+    left: auto;
+    right: 6vw;
+    width: min(62vw, 21rem);
+    transform: translateY(-50%);
+  }
+
+  .content p {
+    font-size: clamp(1.65rem, 8vw, 2.7rem);
+  }
+
+  .startButton {
+    font-size: 0.7rem;
+    padding: 0.9rem 1.6rem;
+  }
+}
