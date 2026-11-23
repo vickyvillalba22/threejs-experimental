@@ -5,6 +5,7 @@ import {
 
 const DEFAULT_EASE = [0.16, 1, 0.3, 1];
 const STAGGER_STEP = 0.1;
+const CINEMATIC_CONTROL_STAGGER = 0.22;
 
 const DEFAULT_SLOT = {
   initial: {
@@ -163,7 +164,7 @@ const CINEMATIC_DELAYS = {
   particles: 0.18,
   content: 0.32,
   objects: 0.5,
-  controls: 0.72,
+  controls: 0.04,
   instructions: 0.86,
 };
 
@@ -184,7 +185,13 @@ export function resolveSequenceDelay(sequence, slot, index = 0) {
   }
 
   if (sequence === SCENE_TRANSITION_SEQUENCES.CINEMATIC) {
-    return CINEMATIC_DELAYS[slot] ?? index * STAGGER_STEP;
+    const baseDelay = CINEMATIC_DELAYS[slot] ?? index * STAGGER_STEP;
+
+    if (slot === "controls") {
+      return baseDelay + index * CINEMATIC_CONTROL_STAGGER;
+    }
+
+    return baseDelay;
   }
 
   return 0;
@@ -201,16 +208,17 @@ export function getSlotTransitionProps({
   const slotPreset = preset.slot || DEFAULT_SLOT;
   const delay = resolveSequenceDelay(sequence, slot, index);
   const duration = reducedMotion ? 0 : preset.duration;
+  const customTransition = overrides.transition || {};
 
   return {
     initial: overrides.initial || slotPreset.initial,
     animate: overrides.animate || slotPreset.animate,
     exit: overrides.exit || slotPreset.exit,
     transition: {
-      duration,
-      delay: reducedMotion ? 0 : delay,
-      ease: preset.ease,
-      ...overrides.transition,
+      ...customTransition,
+      duration: reducedMotion ? 0 : customTransition.duration ?? duration,
+      delay: reducedMotion ? 0 : customTransition.delay ?? delay,
+      ease: customTransition.ease ?? preset.ease,
     },
   };
 }

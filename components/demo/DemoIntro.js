@@ -84,7 +84,9 @@ export default function DemoIntro({
       style={{ pointerEvents: shouldExit ? "none" : undefined }}
     >
       <motion.div
-        animate={shouldExit ? "exit" : "visible"}
+        animate={
+          shouldExit ? "exit" : isCopyComplete ? "visible" : "hidden"
+        }
         className={styles.portalStage}
         variants={{
           hidden: { opacity: 0, scale: 0.82 },
@@ -116,18 +118,20 @@ export default function DemoIntro({
                   scale: 1.35,
                   filter: "blur(16px)",
                 }
-              : {
-                  opacity: reducedMotion ? 0.55 : [0.2, 0.8, 0.35],
-                  scale: reducedMotion ? 1 : [0.75, 1.1, 1],
-                }
+              : isCopyComplete
+                ? {
+                    opacity: reducedMotion ? 0.55 : [0.35, 0.8, 0.35],
+                    scale: reducedMotion ? 1 : [0.85, 1.1, 0.85],
+                  }
+                : { opacity: 0, scale: 0.75 }
           }
           className={styles.portal}
           initial={{ opacity: 0, scale: 0.35 }}
           transition={{
-            delay: reducedMotion || shouldExit ? 0 : 0.15,
-            duration: reducedMotion ? 0 : shouldExit ? 0.72 : 2.8,
+            delay: reducedMotion || shouldExit || !isCopyComplete ? 0 : 0.08,
+            duration: reducedMotion ? 0 : shouldExit ? 0.72 : isCopyComplete ? 2.8 : 0.4,
             ease: "easeInOut",
-            repeat: reducedMotion || shouldExit ? 0 : Infinity,
+            repeat: reducedMotion || shouldExit || !isCopyComplete ? 0 : Infinity,
           }}
         />
         {isCopyComplete && (

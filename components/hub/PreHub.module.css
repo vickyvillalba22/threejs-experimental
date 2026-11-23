@@ -29,6 +29,12 @@
   perspective-origin: 50% 56%;
 }
 
+.prehub__particles-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .prehub__feedback {
   position: fixed;
   inset: 0;
@@ -199,6 +205,10 @@
   transition: filter 300ms ease, opacity 300ms ease;
   transform-origin: center center;
   pointer-events: auto;
+}
+
+.prehub-door__entrance {
+  display: block;
 }
 
 /* Back pair: closer together, smaller, and set behind the front pair. */

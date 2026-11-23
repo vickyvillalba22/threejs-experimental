@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import KeyReveal from "@/components/hub/KeyReveal";
 import MagicParticlesCanvas from "@/components/hub/MagicParticlesCanvas";
@@ -37,8 +38,17 @@ const DOORS = [
 ];
 
 const EFFECT_DURATION = 2200;
+const DOOR_ENTRANCE_ORDER = ["shards", "fire", "water", "correct"];
+const DOOR_ENTRANCE_INDEX = Object.fromEntries(
+  DOOR_ENTRANCE_ORDER.map((doorId, index) => [doorId, index]),
+);
 
-export default function PreHub({ onComplete, onKeyFound, onReady }) {
+export default function PreHub({
+  onComplete,
+  onKeyFound,
+  onReady,
+  transitionContext,
+}) {
   const [removedDoors, setRemovedDoors] = useState([]);
   const [activeDoor, setActiveDoor] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -48,6 +58,12 @@ export default function PreHub({ onComplete, onKeyFound, onReady }) {
   const stageRef = useRef(null);
   const readyNotifiedRef = useRef(false);
   const onReadyRef = useRef(onReady);
+  const getSlotProps = transitionContext?.getSlotProps;
+  const isInteractionLocked = Boolean(transitionContext?.isInteractionLocked);
+
+  function getTransitionSlotProps(slot, index = 0, overrides = {}) {
+    return getSlotProps?.(slot, index, overrides) || {};
+  }
 
   useEffect(() => {
     onReadyRef.current = onReady;
@@ -63,9 +79,17 @@ export default function PreHub({ onComplete, onKeyFound, onReady }) {
         return;
       }
 
+      const canvasCount = stageRef.current.querySelectorAll("canvas").length;
+
+      if (canvasCount < 1) {
+        return;
+      }
+
       readyNotifiedRef.current = true;
       onReadyRef.current?.({
-        canvasCount: stageRef.current.querySelectorAll("canvas").length,
+        canvasCount,
+        canvasReady: true,
+        mounted: true,
       });
     });
 
@@ -81,7 +105,11 @@ export default function PreHub({ onComplete, onKeyFound, onReady }) {
   }, []);
 
   function selectDoor(door) {
-    if (status !== "idle" || removedDoors.includes(door.id)) {
+    if (
+      isInteractionLocked ||
+      status !== "idle" ||
+      removedDoors.includes(door.id)
+    ) {
       return;
     }
 
@@ -109,9 +137,17 @@ export default function PreHub({ onComplete, onKeyFound, onReady }) {
 
   return (
     <main className={`${styles.prehub} min-h-svh overflow-hidden bg-app-background font-app-body text-app-text`}>
-      <div className={styles.prehub__atmosphere} aria-hidden="true" />
+      <motion.div
+        {...getTransitionSlotProps("atmosphere")}
+        className={styles.prehub__atmosphere}
+        aria-hidden="true"
+      />
 
-      <p className={styles.prehub__status} aria-live="polite">
+      <motion.p
+        {...getTransitionSlotProps("instructions")}
+        className={styles.prehub__status}
+        aria-live="polite"
+      >
         {status === "key-revealed"
           ? isKeyCentered
             ? (
@@ -124,7 +160,7 @@ export default function PreHub({ onComplete, onKeyFound, onReady }) {
             )
             : null
           : "Elije la puerta correcta para llegar a Caraval"}
-      </p>
+      </motion.p>
 
       <section
         className={styles.prehub__stage}
@@ -146,10 +182,23 @@ export default function PreHub({ onComplete, onKeyFound, onReady }) {
                 isKeyCentered && activeDoor !== door.id ? styles["is-background"] : "",
               ].filter(Boolean).join(" ")}
               onClick={() => selectDoor(door)}
-              disabled={status !== "idle"}
+              disabled={isInteractionLocked || status !== "idle"}
               aria-label={door.label}
             >
-              <span className={styles["prehub-door__silhouette"]} aria-hidden="true">
+              <motion.span
+                {...getTransitionSlotProps(
+                  "controls",
+                  DOOR_ENTRANCE_INDEX[door.id],
+                  {
+                  initial: { opacity: 0, filter: "blur(10px)" },
+                  animate: { opacity: 1, filter: "blur(0px)" },
+                  exit: { opacity: 0, filter: "blur(6px)" },
+                    transition: { duration: 0.2 },
+                  },
+                )}
+                className={styles["prehub-door__entrance"]}
+              >
+                <span className={styles["prehub-door__silhouette"]} aria-hidden="true">
                 <span className={styles["prehub-door__frame"]}>
                   <span className={styles["prehub-door__face"]}>
                     <span className={styles["prehub-door__grain"]} />
@@ -219,15 +268,22 @@ export default function PreHub({ onComplete, onKeyFound, onReady }) {
                   )}
                 </span>
                 <span className={styles["prehub-door__aura"]} />
-              </span>
-              <span className={styles["prehub-door__caption"]}>{door.label}</span>
+                </span>
+                <span className={styles["prehub-door__caption"]}>{door.label}</span>
+              </motion.span>
             </button>
           ))}
         </div>
-        <MagicParticlesCanvas
-          active={status === "unlocking"}
-          originRef={correctDoorRef}
-        />
+        <motion.div
+          {...getTransitionSlotProps("particles")}
+          className={styles["prehub__particles-layer"]}
+          aria-hidden="true"
+        >
+          <MagicParticlesCanvas
+            active={status === "unlocking"}
+            originRef={correctDoorRef}
+          />
+        </motion.div>
         {status === "key-revealed" && (
           <KeyReveal
             originRef={correctDoorRef}

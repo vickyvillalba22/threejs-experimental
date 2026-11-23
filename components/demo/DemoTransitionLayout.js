@@ -28,7 +28,7 @@ export default function DemoTransitionLayout({ children }) {
       sceneKey={pathname}
       sequence="cinematic"
       variant="portal"
-      waitForReady={false}
+      waitForReady
     >
       {(transitionContext) => (
         <DemoTransitionProvider value={transitionContext}>

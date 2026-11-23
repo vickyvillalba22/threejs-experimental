@@ -22,7 +22,7 @@
 
 .portalStage {
   position: absolute;
-  top: 80%;
+  top: 55%;
   right: 5vw;
   width: min(32vw, 24rem);
   aspect-ratio: 1;
@@ -136,7 +136,7 @@
 
 @media (max-width: 600px) {
   .portalStage {
-    top: 78%;
+    top: 64%;
     right: auto;
     left: auto;
     right: 6vw;

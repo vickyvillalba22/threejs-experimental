@@ -1,21 +1,41 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ParticleTrail from "@/components/ParticleTrail";
 import DemoIntro from "@/components/demo/DemoIntro";
+import { useDemoTransition } from "@/components/demo/DemoTransitionLayout";
 
 export default function HomeDemo() {
   const router = useRouter();
+  const { onReady } = useDemoTransition();
   const [showIntro, setShowIntro] = useState(false);
+  const [showRetryMessage, setShowRetryMessage] = useState(false);
   const navigationStartedRef = useRef(false);
+  const navigationFrameRef = useRef(null);
+
+  useEffect(() => {
+    onReady({ scene: "demo-intro" });
+  }, [onReady]);
+
+  useEffect(
+    () => () => {
+      if (navigationFrameRef.current !== null) {
+        window.cancelAnimationFrame(navigationFrameRef.current);
+      }
+    },
+    [],
+  );
 
   function handleIntroStart() {
     if (navigationStartedRef.current) return;
 
     navigationStartedRef.current = true;
-    router.push("/demo/hubDemo");
+    navigationFrameRef.current = window.requestAnimationFrame(() => {
+      navigationFrameRef.current = null;
+      router.push("/demo/hubDemo");
+    });
   }
 
   return (
@@ -36,12 +56,23 @@ export default function HomeDemo() {
               gestureSparks={2}
               gestureSpread={5}
               gestureSize={1.15}
+              onInvalidGesture={() => setShowRetryMessage(true)}
               onReveal={() => setShowIntro(true)}
             />
             <section className="relative z-40 grid min-h-svh select-none place-items-center px-6 text-center">
-              <p className="text-sm font-light sm:text-[50px]">
-                Mantené presionado y dibujá un círculo
-              </p>
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-light sm:text-[50px]">
+                  Mantené presionado y dibujá un círculo
+                </p>
+                {showRetryMessage && (
+                  <p
+                    aria-live="polite"
+                    className="mt-2 text-[20px] font-light tracking-[0.08em] text-white/75"
+                  >
+                    intenta de nuevo!
+                  </p>
+                )}
+              </div>
             </section>
           </motion.div>
         ) : (

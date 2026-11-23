@@ -54,6 +54,7 @@ const MAX_ELECTRIC_SEGMENTS = 720;
 
 export default function ParticleTrail({
   onReveal,
+  onInvalidGesture,
   gestureDensity = 1,
   gestureSpread = 1,
   gestureSize = 1,
@@ -62,6 +63,11 @@ export default function ParticleTrail({
 }) {
   const canvasRef = useRef(null);
   const onRevealRef = useRef(onReveal);
+  const onInvalidGestureRef = useRef(onInvalidGesture);
+
+  useEffect(() => {
+    onInvalidGestureRef.current = onInvalidGesture;
+  }, [onInvalidGesture]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -357,7 +363,14 @@ export default function ParticleTrail({
     }
 
     function handlePointerUp() {
-      if (isDrawingGesture && isMagicCircle(gesturePoints)) revealEntrance();
+      if (isDrawingGesture) {
+        if (isMagicCircle(gesturePoints)) {
+          revealEntrance();
+        } else {
+          onInvalidGestureRef.current?.();
+        }
+      }
+
       isDrawingGesture = false;
       gesturePoints = [];
     }
