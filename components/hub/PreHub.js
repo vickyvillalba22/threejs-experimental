@@ -38,13 +38,39 @@ const DOORS = [
 
 const EFFECT_DURATION = 2200;
 
-export default function PreHub({ onComplete, onKeyFound }) {
+export default function PreHub({ onComplete, onKeyFound, onReady }) {
   const [removedDoors, setRemovedDoors] = useState([]);
   const [activeDoor, setActiveDoor] = useState(null);
   const [status, setStatus] = useState("idle");
   const [isKeyCentered, setIsKeyCentered] = useState(false);
   const timerRef = useRef(null);
   const correctDoorRef = useRef(null);
+  const stageRef = useRef(null);
+  const readyNotifiedRef = useRef(false);
+  const onReadyRef = useRef(onReady);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  useEffect(() => {
+    if (!onReady || readyNotifiedRef.current) {
+      return undefined;
+    }
+
+    const readyFrame = window.requestAnimationFrame(() => {
+      if (!stageRef.current || readyNotifiedRef.current) {
+        return;
+      }
+
+      readyNotifiedRef.current = true;
+      onReadyRef.current?.({
+        canvasCount: stageRef.current.querySelectorAll("canvas").length,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(readyFrame);
+  }, [onReady]);
 
   useEffect(() => {
     return () => {
@@ -103,6 +129,7 @@ export default function PreHub({ onComplete, onKeyFound }) {
       <section
         className={styles.prehub__stage}
         aria-label="Puertas de entrada a Caraval"
+        ref={stageRef}
       >
         <div className={styles.prehub__doors}>
           {DOORS.map((door) => (

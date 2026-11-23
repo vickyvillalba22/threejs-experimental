@@ -1,12 +1,22 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import ParticleTrail from "@/components/ParticleTrail";
 import DemoIntro from "@/components/demo/DemoIntro";
 
 export default function HomeDemo() {
+  const router = useRouter();
   const [showIntro, setShowIntro] = useState(false);
+  const navigationStartedRef = useRef(false);
+
+  function handleIntroStart() {
+    if (navigationStartedRef.current) return;
+
+    navigationStartedRef.current = true;
+    router.push("/demo/hubDemo");
+  }
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-black text-app-text">
@@ -35,7 +45,7 @@ export default function HomeDemo() {
             </section>
           </motion.div>
         ) : (
-          <DemoIntro key="demo-intro" />
+          <DemoIntro key="demo-intro" onStart={handleIntroStart} />
         )}
       </AnimatePresence>
     </main>

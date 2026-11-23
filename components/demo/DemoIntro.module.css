@@ -8,6 +8,7 @@
   background:
     linear-gradient(rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.62)),
     url("/imgs/demo-presentation.jpeg") center center / cover no-repeat;
+  will-change: opacity;
 }
 
 .atmosphere {
@@ -27,6 +28,7 @@
   aspect-ratio: 1;
   transform: translateY(-50%);
   z-index: 1;
+  will-change: opacity, transform, filter;
 }
 
 .atmosphere {
@@ -37,6 +39,7 @@
   filter: blur(28px);
   opacity: 0.6;
   z-index: -2;
+  will-change: opacity, transform, filter;
 }
 
 .portal {
@@ -49,6 +52,7 @@
     inset 0 0 28px rgba(255, 255, 255, 0.12);
   filter: blur(0.3px);
   pointer-events: none;
+  will-change: opacity, transform, filter;
 }
 
 .content {
@@ -57,6 +61,7 @@
   z-index: 1;
   width: 40%;
   text-align: center;
+  will-change: opacity, transform, filter;
 }
 
 .content p {
@@ -103,6 +108,11 @@
     border-color 180ms ease,
     color 180ms ease,
     box-shadow 180ms ease;
+  will-change: opacity, transform, filter;
+}
+
+.startButton:disabled {
+  cursor: default;
 }
 
 .startButton:hover {

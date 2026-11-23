@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { LayoutRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-function FrozenRouter({ children }) {
+export function FrozenRouter({ children }) {
   const routerContext = useContext(LayoutRouterContext);
   const [frozenRouterContext] = useState(() => routerContext);
 
@@ -19,6 +19,12 @@ function FrozenRouter({ children }) {
 export default function PageTransition({ children }) {
   const pathname = usePathname();
   const shouldReduceMotion = useReducedMotion();
+  const isDemoRoute =
+    pathname === "/demo" || pathname?.startsWith("/demo/");
+
+  if (isDemoRoute) {
+    return children;
+  }
 
   const transition = shouldReduceMotion
     ? { duration: 0 }
