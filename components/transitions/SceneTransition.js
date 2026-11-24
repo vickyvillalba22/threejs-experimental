@@ -19,13 +19,14 @@ function SceneTransitionEntry({
   sequence,
   lockInteraction,
   waitForReady,
+  animateInitial,
   onComplete,
   reducedMotion,
   className,
   ...props
 }) {
   const isRenderProp = typeof children === "function";
-  const [animationComplete, setAnimationComplete] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(!animateInitial);
   const [sceneReady, setSceneReady] = useState(!isRenderProp);
   const [readyMetadata, setReadyMetadata] = useState(undefined);
   const completedRef = useRef(false);
@@ -100,7 +101,7 @@ function SceneTransitionEntry({
     <motion.div
       {...props}
       className={className}
-      initial={preset.initial}
+      initial={animateInitial ? preset.initial : false}
       animate={preset.animate}
       exit={preset.exit}
       transition={{
@@ -130,6 +131,8 @@ export default function SceneTransition({
   sequence = SCENE_TRANSITION_DEFAULTS.sequence,
   lockInteraction = SCENE_TRANSITION_DEFAULTS.lockInteraction,
   waitForReady = SCENE_TRANSITION_DEFAULTS.waitForReady,
+  mode = "sync",
+  animateInitial = true,
   onComplete,
   className,
   ...props
@@ -138,7 +141,7 @@ export default function SceneTransition({
   const preset = getSceneTransitionPreset(variant);
 
   return (
-    <AnimatePresence mode="sync">
+    <AnimatePresence mode={mode}>
       <SceneTransitionEntry
         key={sceneKey}
         {...props}
@@ -150,6 +153,7 @@ export default function SceneTransition({
         sceneKey={sceneKey}
         sequence={sequence}
         waitForReady={waitForReady}
+        animateInitial={animateInitial}
       >
         {children}
       </SceneTransitionEntry>

@@ -21,6 +21,7 @@ export const SCENE_TRANSITION_VARIANTS = Object.freeze({
   FRAGMENT: "fragment",
   CURTAIN: "curtain",
   SHATTER: "shatter",
+  GROW: "grow",
 });
 
 export const SCENE_TRANSITION_SEQUENCES = Object.freeze({

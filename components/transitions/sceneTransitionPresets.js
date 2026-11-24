@@ -156,6 +156,22 @@ export const SCENE_TRANSITION_PRESETS = Object.freeze({
     },
     slot: DEFAULT_SLOT,
   },
+  [SCENE_TRANSITION_VARIANTS.GROW]: {
+    duration: 1.2,
+    ease: DEFAULT_EASE,
+    initial: {
+      opacity: 0,
+      scale: 0.6,
+    },
+    animate: {
+      opacity: 1,
+      scale: 1,
+    },
+    exit: {
+      opacity: 0,
+    },
+    slot: DEFAULT_SLOT,
+  },
 });
 
 const CINEMATIC_DELAYS = {
