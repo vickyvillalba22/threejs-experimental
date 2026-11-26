@@ -51,12 +51,14 @@ const softReflectorShader = {
 
 export default function CarruselScene({
   onCardFound,
+  onCardFoundDetails,
   isCardReveal = false,
   showDeck = false,
   onCardRevealComplete,
 }) {
   const containerRef = useRef(null);
   const onCardFoundRef = useRef(onCardFound);
+  const onCardFoundDetailsRef = useRef(onCardFoundDetails);
   const onCardRevealCompleteRef = useRef(onCardRevealComplete);
   const floatingCardsRef = useRef(null);
   const deckRootRef = useRef(null);
@@ -68,6 +70,10 @@ export default function CarruselScene({
   useEffect(() => {
     onCardFoundRef.current = onCardFound;
   }, [onCardFound]);
+
+  useEffect(() => {
+    onCardFoundDetailsRef.current = onCardFoundDetails;
+  }, [onCardFoundDetails]);
 
   useEffect(() => {
     onCardRevealCompleteRef.current = onCardRevealComplete;
@@ -414,6 +420,8 @@ export default function CarruselScene({
       renderer,
       carouselRoot,
       onCardFound: (value) => onCardFoundRef.current?.(value),
+      onCardFoundDetails: (details) =>
+        onCardFoundDetailsRef.current?.(details),
     });
     floatingCardsRef.current = floatingCards;
     if (cardRevealActiveRef.current) {
@@ -460,7 +468,7 @@ export default function CarruselScene({
 
     let animationFrame;
     const rotationClock = new THREE.Clock();
-    const carouselRotationSpeed = 0.04;
+    const carouselRotationSpeed = 0.08;
 
     function animate() {
       animationFrame = window.requestAnimationFrame(animate);

@@ -5,11 +5,11 @@ import { createThreeEntrance } from "@/components/transitions/three";
 const CARD_VALUES = ["CherviTuz", "Chervi2", "Chervi3", "Chervi4", "Chervi5", "Chervi6", "Chervi7"];
 const CARD_POSITIONS = [
   [-1.35, 0.35, 1.35],
-  [-0.65, 1.0, 1.75],
+  [-0.65, 0, 1.75],
   [0.05, 0.25, 2.0],
-  [0.75, 1.05, 1.65],
+  [0.75, 0, 1.65],
   [1.45, 0.35, 1.15],
-  [1.25, 0.8, -0.85],
+  [1.25, 0, -0.85],
   [-1.05, 0.5, -1.25],
 ];
 
@@ -17,7 +17,14 @@ function valueFromName(name) {
   return name === "CherviTuz" ? 1 : Number(name.replace("Chervi", ""));
 }
 
-export function createFloatingCards({ scene, camera, renderer, carouselRoot, onCardFound }) {
+export function createFloatingCards({
+  scene,
+  camera,
+  renderer,
+  carouselRoot,
+  onCardFound,
+  onCardFoundDetails,
+}) {
   const cardsRoot = new THREE.Group();
   cardsRoot.name = "floating-cards";
   cardsRoot.renderOrder = 1;
@@ -63,6 +70,11 @@ export function createFloatingCards({ scene, camera, renderer, carouselRoot, onC
     cardAnchor.userData.found = true;
     cardAnchor.visible = false;
     onCardFound?.(cardAnchor.userData.value);
+    onCardFoundDetails?.({
+      value: cardAnchor.userData.value,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
   }
 
   renderer.domElement.addEventListener("pointerdown", handlePointerDown);
