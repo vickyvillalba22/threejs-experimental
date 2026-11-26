@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import CarruselScene from "@/components/chapters/carrusel/CarruselScene";
 import { useDemoTransition } from "@/components/demo/DemoTransitionLayout";
 
 export default function CarruselDemo() {
   const { onReady } = useDemoTransition();
+  const shouldReduceMotion = useReducedMotion();
   const counterRef = useRef(null);
   const [foundCards, setFoundCards] = useState(0);
   const [flyingCards, setFlyingCards] = useState([]);
@@ -61,6 +62,41 @@ export default function CarruselDemo() {
           Cartas encontradas
         </p>
       </div>
+
+      <motion.div
+        className="pointer-events-none absolute right-[4%] top-[39%] z-10 flex w-36 flex-col items-center text-center text-app-text sm:right-[9%] sm:top-[37%]"
+        animate={
+          shouldReduceMotion
+            ? { opacity: 1 }
+            : { opacity: [0.68, 1, 0.68], y: [0, -5, 0] }
+        }
+        transition={
+          shouldReduceMotion
+            ? { duration: 0 }
+            : { duration: 2.2, ease: "easeInOut", repeat: Infinity }
+        }
+        aria-hidden="true"
+      >
+        <span className="font-app-display text-base leading-tight sm:text-lg">
+          Puedes rotar
+          <br />
+          el carrusel!
+        </span>
+        <svg
+          className="mt-2 w-20 -rotate-[18deg] text-app-accent sm:w-24"
+          viewBox="0 0 80 52"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M72 8C62 31 39 43 11 42M11 42l12-8M11 42l14 4"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </motion.div>
 
       <AnimatePresence>
         {flyingCards.map((card) => (
