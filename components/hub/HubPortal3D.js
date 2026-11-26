@@ -273,14 +273,20 @@ function createBurstMaterial() {
   });
 }
 
-export default function HubPortal3D({ onAwaken, onRoseRevealed }) {
+export default function HubPortal3D({
+  onAwaken,
+  onRoseRevealed,
+  onDemoPhaseChange,
+}) {
   const containerRef = useRef(null);
   const holdTimerRef = useRef(null);
   const awakenedRef = useRef(false);
   const roseCenterReachedRef = useRef(false);
+  const roseRevealCompletedRef = useRef(false);
   const roseInteractionRef = useRef(null);
   const onAwakenRef = useRef(onAwaken);
   const onRoseRevealedRef = useRef(onRoseRevealed);
+  const onDemoPhaseChangeRef = useRef(onDemoPhaseChange);
   const chargeTargetRef = useRef(0);
   const burstStartRef = useRef(null);
   const holdStartRef = useRef(null);
@@ -295,6 +301,14 @@ export default function HubPortal3D({ onAwaken, onRoseRevealed }) {
     onRoseRevealedRef.current = onRoseRevealed;
   }, [onRoseRevealed]);
 
+  useEffect(() => {
+    onDemoPhaseChangeRef.current = onDemoPhaseChange;
+  }, [onDemoPhaseChange]);
+
+  function notifyDemoPhase(phase) {
+    onDemoPhaseChangeRef.current?.({ phase });
+  }
+
   function completeAwakening() {
     if (awakenedRef.current) return;
     awakenedRef.current = true;
@@ -304,6 +318,7 @@ export default function HubPortal3D({ onAwaken, onRoseRevealed }) {
     setIsCharging(false);
     setIsAwakened(true);
     onRoseRevealedRef.current?.();
+    notifyDemoPhase("arc-completed");
     window.clearTimeout(holdTimerRef.current);
   }
 
@@ -470,6 +485,7 @@ export default function HubPortal3D({ onAwaken, onRoseRevealed }) {
       portal.worldToLocal(roseCenterTargetPosition);
       roseCenterStartScale = rose.scale.clone();
       roseCenterTargetScale = rose.scale.clone().multiplyScalar(ROSE_CENTER_SCALE);
+      notifyDemoPhase("rose-selected");
     };
 
     const handleCanvasPointerDown = (event) => {
@@ -716,6 +732,11 @@ export default function HubPortal3D({ onAwaken, onRoseRevealed }) {
           roseRevealUniform.value = roseProgress;
           roseColorRecoveryUniform.value = 0;
 
+          if (roseProgress >= 0.999 && !roseRevealCompletedRef.current) {
+            roseRevealCompletedRef.current = true;
+            notifyDemoPhase("rose-revealed");
+          }
+
           if (roseCenterStartAt !== null) {
           const centerProgress = Math.min(
             (performance.now() - roseCenterStartAt) / ROSE_CENTER_DURATION,
@@ -729,6 +750,7 @@ export default function HubPortal3D({ onAwaken, onRoseRevealed }) {
             if (centerProgress >= 1 && !roseCenterReachedRef.current) {
               roseCenterReachedRef.current = true;
               roseFocusStartAt = performance.now();
+              notifyDemoPhase("rose-approach-complete");
               onAwakenRef.current?.();
             }
         }

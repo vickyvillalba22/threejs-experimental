@@ -23,19 +23,22 @@ export default function DemoTransitionLayout({ children }) {
   const pathname = usePathname();
 
   return (
-    <SceneTransition
-      className="min-h-svh"
-      sceneKey={pathname}
-      sequence="cinematic"
-      variant="portal"
-      waitForReady
-    >
-      {(transitionContext) => (
-        <DemoTransitionProvider value={transitionContext}>
-          <FrozenRouter>{children}</FrozenRouter>
-        </DemoTransitionProvider>
-      )}
-    </SceneTransition>
+    <div className="relative min-h-svh overflow-hidden">
+      <SceneTransition
+        className="absolute inset-0 min-h-svh"
+        sceneKey={pathname}
+        sequence="cinematic"
+        variant="portal"
+        mode="wait"
+        waitForReady
+      >
+        {(transitionContext) => (
+          <DemoTransitionProvider value={transitionContext}>
+            <FrozenRouter>{children}</FrozenRouter>
+          </DemoTransitionProvider>
+        )}
+      </SceneTransition>
+    </div>
   );
 }
 

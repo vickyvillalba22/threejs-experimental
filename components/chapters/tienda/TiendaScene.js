@@ -13,15 +13,21 @@ const POCKET_WATCH_COLOR_REVEAL_DURATION = 1600;
 
 export default function TiendaScene({
   onMaskClick,
+  onMaskRevealComplete,
   onClockHourChange,
+  onReady,
   showPocketWatch = false,
   pocketWatchAwakened = false,
+  enablePostMaskInteraction = true,
 }) {
   const containerRef = useRef(null);
   const onMaskClickRef = useRef(onMaskClick);
+  const onMaskRevealCompleteRef = useRef(onMaskRevealComplete);
   const onClockHourChangeRef = useRef(onClockHourChange);
+  const onReadyRef = useRef(onReady);
   const showPocketWatchRef = useRef(showPocketWatch);
   const pocketWatchAwakenedRef = useRef(pocketWatchAwakened);
+  const enablePostMaskInteractionRef = useRef(enablePostMaskInteraction);
   const pocketWatchEntranceRef = useRef(null);
   const pocketWatchEntranceStartedRef = useRef(false);
 
@@ -32,6 +38,18 @@ export default function TiendaScene({
   useEffect(() => {
     onClockHourChangeRef.current = onClockHourChange;
   }, [onClockHourChange]);
+
+  useEffect(() => {
+    onMaskRevealCompleteRef.current = onMaskRevealComplete;
+  }, [onMaskRevealComplete]);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  useEffect(() => {
+    enablePostMaskInteractionRef.current = enablePostMaskInteraction;
+  }, [enablePostMaskInteraction]);
 
   useEffect(() => {
     showPocketWatchRef.current = showPocketWatch;
@@ -1101,7 +1119,9 @@ export default function TiendaScene({
         updatePointer(event);
         if (maskObject && raycaster.intersectObject(maskObject, true).length > 0) {
           startMaskReveal();
-          onMaskClickRef.current?.();
+          if (enablePostMaskInteractionRef.current) {
+            onMaskClickRef.current?.();
+          }
         }
       }
       isMaskPointerDown = false;
@@ -1202,6 +1222,7 @@ export default function TiendaScene({
         isMaskRevealAppearanceReady = true;
         isMaskRevealAnimating = false;
         maskRevealStartedAt = null;
+        onMaskRevealCompleteRef.current?.();
       }
     }
 
@@ -1285,6 +1306,12 @@ export default function TiendaScene({
     renderer.domElement.addEventListener("pointerup", handlePointerUp);
     renderer.domElement.addEventListener("pointercancel", handlePointerCancel);
     resize();
+    onReadyRef.current?.({
+      canvasCount: 1,
+      canvasReady: true,
+      mounted: true,
+      scene: "tienda",
+    });
     animate();
 
     return () => {

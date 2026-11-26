@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import PreHub from "@/components/hub/PreHub";
 import { useDemoTransition } from "@/components/demo/DemoTransitionLayout";
 import HubDemoScene from "@/components/demo/hubDemo/HubDemoScene";
 import SceneTransition from "@/components/transitions/SceneTransition";
 
 export default function HubDemo() {
+  const router = useRouter();
   const transitionContext = useDemoTransition();
   const { onReady } = transitionContext;
   const [activeScene, setActiveScene] = useState("prehub");
@@ -31,6 +33,15 @@ export default function HubDemo() {
     [onReady],
   );
 
+  const handleDemoPhaseChange = useCallback(
+    ({ phase } = {}) => {
+      if (phase === "rose-approach-complete") {
+        router.push("/demo/tiendaDemo");
+      }
+    },
+    [router],
+  );
+
   return (
     <SceneTransition
       sceneKey={activeScene}
@@ -41,7 +52,7 @@ export default function HubDemo() {
       className="min-h-svh"
     >
       {activeScene === "hub" ? (
-        <HubDemoScene />
+        <HubDemoScene onDemoPhaseChange={handleDemoPhaseChange} />
       ) : (
         <PreHub
           onComplete={() => setActiveScene("hub")}
